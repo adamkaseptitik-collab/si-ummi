@@ -238,8 +238,225 @@ export default function StudentListView({
     setFormPhotoUrl('');
   };
 
+  const escapeCsvField = (val: string | number | undefined) => {
+    if (val === undefined || val === null) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
+  const handleExportExcel = () => {
+    const headers = [
+      'No',
+      'NIP',
+      'Nama Lengkap',
+      'Tempat Lahir',
+      'Tgl Lahir',
+      'Kelas',
+      'JK',
+      'Orangtua/Wali',
+      'No HP',
+      'Alamat Lengkap',
+      'Thn Masuk',
+      'Program Studi',
+      'Status'
+    ];
+
+    let csvContent = 'sep=;\r\n';
+    csvContent += headers.join(';') + '\r\n';
+
+    filteredStudents.forEach((student, index) => {
+      const row = [
+        index + 1,
+        student.nip || student.id,
+        student.name,
+        student.birthPlace || '',
+        student.birthDate || '',
+        student.class || '',
+        student.gender || '',
+        student.parentName || '',
+        student.phoneNumber || '',
+        student.address || '',
+        student.entryYear || '',
+        student.program || '',
+        student.status || ''
+      ];
+      csvContent += row.map(escapeCsvField).join(';') + '\r\n';
+    });
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Data_Santri_Ekspor_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text) return;
+
+        const lines = text.split(/\r?\n/);
+        if (lines.length === 0) return;
+
+        let headerLineIndex = 0;
+        if (lines[0].startsWith('sep=')) {
+          headerLineIndex = 1;
+        }
+
+        if (lines.length <= headerLineIndex) {
+          alert('File kosong atau format salah.');
+          return;
+        }
+
+        const rawHeaderLine = lines[headerLineIndex];
+        let delimiter = ';';
+        if (rawHeaderLine.includes('\t')) {
+          delimiter = '\t';
+        } else if (rawHeaderLine.includes(';') && !rawHeaderLine.includes(',')) {
+          delimiter = ';';
+        } else if (rawHeaderLine.includes(',')) {
+          const semiCount = (rawHeaderLine.match(/;/g) || []).length;
+          const commaCount = (rawHeaderLine.match(/,/g) || []).length;
+          delimiter = semiCount >= commaCount ? ';' : ',';
+        }
+
+        const parseLine = (lineStr: string) => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          for (let i = 0; i < lineStr.length; i++) {
+            const char = lineStr[i];
+            if (char === '"') {
+              if (inQuotes && lineStr[i + 1] === '"') {
+                current += '"';
+                i++;
+              } else {
+                inQuotes = !inQuotes;
+              }
+            } else if (char === delimiter && !inQuotes) {
+              result.push(current);
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current);
+          return result;
+        };
+
+        const headers = parseLine(rawHeaderLine).map(h => h.trim().toLowerCase());
+
+        const getColIndex = (options: string[]) => {
+          return headers.findIndex(h => options.some(opt => h.includes(opt.toLowerCase())));
+        };
+
+        const nipIdx = getColIndex(['nip', 'nomor induk', 'id']);
+        const nameIdx = getColIndex(['nama', 'name', 'lengkap']);
+        const birthPlaceIdx = getColIndex(['tempat lahir', 'tempat', 'lahir tempat']);
+        const birthDateIdx = getColIndex(['tgl lahir', 'tanggal lahir', 'birthdate', 'birth date']);
+        const classIdx = getColIndex(['kelas', 'class']);
+        const genderIdx = getColIndex(['jk', 'gender', 'jenis kelamin', 'kelamin']);
+        const parentNameIdx = getColIndex(['orangtua', 'wali', 'parent', 'nama wali']);
+        const phoneNumberIdx = getColIndex(['hp', 'telepon', 'phone', 'telp', 'no hp', 'nomor hp']);
+        const addressIdx = getColIndex(['alamat', 'address', 'rumah']);
+        const entryYearIdx = getColIndex(['thn masuk', 'tahun masuk', 'tahun', 'masuk']);
+        const programIdx = getColIndex(['program', 'studi', 'prodi']);
+        const statusIdx = getColIndex(['status']);
+
+        if (nameIdx === -1) {
+          alert('Format kolom tidak sesuai. Pastikan file memiliki kolom dengan judul "Nama" atau "Nama Lengkap".');
+          return;
+        }
+
+        const importedStudents: Student[] = [];
+
+        for (let i = headerLineIndex + 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const cols = parseLine(line);
+          if (cols.length === 0 || (cols.length === 1 && !cols[0])) continue;
+
+          const name = cols[nameIdx]?.trim() || '';
+          if (!name) continue;
+
+          const nip = nipIdx !== -1 ? cols[nipIdx]?.trim() : '';
+          const birthPlace = birthPlaceIdx !== -1 ? cols[birthPlaceIdx]?.trim() : 'Cirebon';
+          const birthDate = birthDateIdx !== -1 ? cols[birthDateIdx]?.trim() : '2010-04-12';
+          const sClass = classIdx !== -1 ? cols[classIdx]?.trim() : (classes[0] || '10A');
+          const rawGender = genderIdx !== -1 ? cols[genderIdx]?.trim() : 'Laki-laki';
+          const gender = (rawGender.toLowerCase().startsWith('p') || rawGender.toLowerCase().startsWith('w')) ? 'Perempuan' : 'Laki-laki';
+          const parentName = parentNameIdx !== -1 ? cols[parentNameIdx]?.trim() : 'Orangtua Santri';
+          const phoneNumber = phoneNumberIdx !== -1 ? cols[phoneNumberIdx]?.trim() : '081234567890';
+          const address = addressIdx !== -1 ? cols[addressIdx]?.trim() : 'Jl. Pesantren No. 1';
+          const entryYear = entryYearIdx !== -1 ? cols[entryYearIdx]?.trim() : '2024';
+          const rawProgram = programIdx !== -1 ? cols[programIdx]?.trim() : 'Pondok';
+          const program = rawProgram.toLowerCase().includes('madrasah') ? 'Madrasah' : 'Pondok';
+          const rawStatus = statusIdx !== -1 ? cols[statusIdx]?.trim() : 'Aktif';
+          const status = rawStatus.toLowerCase().startsWith('al') ? 'Alumni' : 'Aktif';
+
+          const newStudent: Student = {
+            id: 's_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            name,
+            nisn: '00' + Math.floor(Math.random() * 10000000),
+            nip: nip || '10' + Math.floor(Math.random() * 10000000),
+            nis: 'NIS-' + entryYear + Math.floor(Math.random() * 1000),
+            gender,
+            class: sClass,
+            program: program as any,
+            status: status as any,
+            dorm: 'Asrama A-01',
+            tahfidzJuz: 0,
+            tahfidzDetail: '-',
+            totalScore: 80.0,
+            attendanceRate: 100,
+            birthPlace,
+            birthDate,
+            parentName,
+            phoneNumber,
+            address,
+            entryYear,
+            photoUrl: gender === 'Laki-laki' 
+              ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuCkLYXeLgpBsZWbBC8F6MHXFF40RID1YkqZxXrsP-H0Fbc2i6FRGU5MdMW47p6gSBNGUTFfcOxtK4ad4zdQb1uPKsU8QPZLRsw0N_eRN2nGl-jYeYqCnnYLH5ajiDH7hSrKl8YCSBLFTos7hWz65yS-Q6Pk7agAo3GUYYVPKihODvnjhD64eygg9QNugdZ4HPEsUlWvFJTOXyCv013c9pRr8AIf8RLXPJYoP9yC43dtDquPvx6b1Yyw'
+              : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBUFjYUibwfoObiO0LkgtB7CwJJG9v24SRwrhxRKGKE4rAwYggU9vgvVU03CP9pxjtHvJM3iHfSJNcrDByFnuBmJl9AiJskOKhYoMRRgIf8iPyGko1z2XevqCwFMs2qORbNAwVfKufvGYf_CH4iJFMFc4TihK4gtw5YoGoqkdcRS9ziGvHYMT8TRxApI5qSn-qtcSZNTRpB8p5_pU-ISTj9_E0_Rl1-dQPFyn8hrs4nvkqe3A1ZDHZD',
+          };
+
+          importedStudents.push(newStudent);
+        }
+
+        if (importedStudents.length === 0) {
+          alert('Tidak ada data santri yang valid untuk dimasukkan.');
+          return;
+        }
+
+        onUpdateStudents([...importedStudents, ...students]);
+        alert(`Sukses! Berhasil mengimpor ${importedStudents.length} data santri.`);
+        e.target.value = '';
+      } catch (err: any) {
+        alert('Gagal membaca file: ' + err.message);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+
   return (
     <div className="space-y-section-gap">
+      <input
+        type="file"
+        id="import-student-csv"
+        accept=".csv,.txt"
+        onChange={handleImportExcel}
+        className="hidden"
+      />
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -248,17 +465,35 @@ export default function StudentListView({
             Kelola informasi, status, dan pencapaian seluruh santri.
           </p>
         </div>
-        <button
-          id="btn-tambah-santri-baru"
-          onClick={() => {
-            resetForm();
-            setAddStudentOpen(true);
-          }}
-          className="bg-primary text-on-primary px-5 py-2.5 rounded-lg font-sans text-xs font-semibold flex items-center gap-2 hover:bg-primary-container transition-all hover-elevate shadow-xs cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[18px]">person_add</span>
-          <span>Tambah Santri Baru</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => document.getElementById('import-student-csv')?.click()}
+            className="border border-outline-variant/80 hover:bg-surface-container-low text-on-surface px-4 py-2.5 rounded-lg font-sans text-xs font-semibold flex items-center gap-2 transition-all hover-elevate shadow-xs cursor-pointer"
+            title="Import data dari file CSV / Excel"
+          >
+            <span className="material-symbols-outlined text-[18px]">publish</span>
+            <span>Impor Data</span>
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-sans text-xs font-semibold flex items-center gap-2 transition-all hover-elevate shadow-xs cursor-pointer"
+            title="Ekspor data tampil ke format Excel/CSV"
+          >
+            <span className="material-symbols-outlined text-[18px]">download</span>
+            <span>Ekspor Data</span>
+          </button>
+          <button
+            id="btn-tambah-santri-baru"
+            onClick={() => {
+              resetForm();
+              setAddStudentOpen(true);
+            }}
+            className="bg-primary text-on-primary px-5 py-2.5 rounded-lg font-sans text-xs font-semibold flex items-center gap-2 hover:bg-primary-container transition-all hover-elevate shadow-xs cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[18px]">person_add</span>
+            <span>Tambah Santri Baru</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Bar */}
