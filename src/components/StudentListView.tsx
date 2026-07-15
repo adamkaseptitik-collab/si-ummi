@@ -56,6 +56,33 @@ export default function StudentListView({
   const [formEntryYear, setFormEntryYear] = useState('2024');
   const [formPhotoUrl, setFormPhotoUrl] = useState('');
 
+  const [previewStudent, setPreviewStudent] = useState<{ name: string; photoUrl: string } | null>(null);
+
+  const handleDownloadPhoto = async (url: string, name: string) => {
+    try {
+      const response = await fetch(url, { mode: 'cors' });
+      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${name.replace(/\s+/g, '_')}_foto.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Gagal mengunduh menggunakan fetch, beralih ke pembukaan tab baru:", error);
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.download = `${name.replace(/\s+/g, '_')}_foto.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -658,8 +685,12 @@ export default function StudentListView({
                             <img
                               alt={student.name}
                               referrerPolicy="no-referrer"
-                              className="w-10 h-10 rounded-full object-cover border border-outline-variant/50 shadow-2xs"
+                              className="w-10 h-10 rounded-full object-cover border border-outline-variant/50 shadow-2xs hover:scale-115 transition-transform duration-200 cursor-zoom-in relative z-10"
                               src={student.photoUrl}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewStudent({ name: student.name, photoUrl: student.photoUrl });
+                              }}
                             />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/40 flex items-center justify-center font-bold text-on-surface-variant text-[11px] shadow-2xs">
@@ -1064,6 +1095,56 @@ export default function StudentListView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Student Photo Preview Modal */}
+      {previewStudent && (
+        <div className="fixed inset-0 bg-[#000000]/85 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl border border-outline-variant max-w-sm w-full p-6 shadow-2xl relative text-left flex flex-col items-center">
+            {/* Close Button */}
+            <button
+              onClick={() => setPreviewStudent(null)}
+              className="absolute top-4 right-4 p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors cursor-pointer flex items-center justify-center"
+              title="Tutup"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            {/* Profile Detail */}
+            <div className="w-full text-center space-y-4">
+              <span className="material-symbols-outlined text-[40px] text-primary">account_circle</span>
+              <h3 className="font-display text-sm font-bold text-primary">Foto Profil Santri</h3>
+              <p className="text-xs font-bold text-on-surface line-clamp-1">{previewStudent.name}</p>
+
+              {/* Photo View Box */}
+              <div className="relative border border-outline-variant rounded-xl overflow-hidden bg-black/5 flex items-center justify-center max-w-[240px] mx-auto aspect-square shadow-inner">
+                <img
+                  src={previewStudent.photoUrl}
+                  alt={previewStudent.name}
+                  referrerPolicy="no-referrer"
+                  className="max-h-[220px] max-w-full object-contain hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+
+              {/* Download & Actions Bar */}
+              <div className="flex gap-2 justify-center pt-2 w-full">
+                <button
+                  onClick={() => handleDownloadPhoto(previewStudent.photoUrl, previewStudent.name)}
+                  className="flex items-center justify-center gap-1.5 bg-primary text-on-primary px-4 py-2 rounded-lg text-xs font-semibold hover:bg-primary-container transition-all shadow-xs cursor-pointer flex-1"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  <span>Unduh Foto</span>
+                </button>
+                <button
+                  onClick={() => setPreviewStudent(null)}
+                  className="px-4 py-2 border border-outline-variant text-on-surface hover:bg-surface-container-low rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

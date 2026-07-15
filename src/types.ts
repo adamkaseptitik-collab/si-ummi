@@ -46,6 +46,7 @@ export interface MemorizationRecord {
     madConsistency: boolean;
     ghunnahHold: boolean;
   };
+  keterangan?: string;
   finalScore: number;
   grade: 'A' | 'B' | 'C';
   predikat: string;
@@ -125,6 +126,7 @@ export interface UserAccount {
   role: UserRole;
   status: 'Aktif' | 'Nonaktif';
   permittedViews?: string[]; // Allowed menu/view keys for admin/ustadz/wali
+  photoUrl?: string;
 }
 
 export interface UserLog {

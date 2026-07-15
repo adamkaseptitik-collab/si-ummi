@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, TeacherAttendance, StudentAttendance, PointRecord, MemorizationRecord, UserAccount, UserLog } from '../types';
+import { Student, TeacherAttendance, StudentAttendance, PointRecord, MemorizationRecord, UserAccount, UserLog, Teacher } from '../types';
 
 const ALL_MENU_VIEWS = [
   { view: 'dashboard', label: 'Dashboard' },
@@ -32,6 +32,7 @@ interface OtherViewsProps {
   onUpdateCurrentUser?: (user: UserAccount | null) => void;
   users?: UserAccount[];
   onUpdateUsers?: (u: UserAccount[]) => void;
+  teachers?: Teacher[];
 }
 
 interface Subject {
@@ -60,7 +61,8 @@ interface AcademicGrade {
 // ==========================================
 // 1. MANAJEMEN AKADEMIK VIEW WITH GRADING
 // ==========================================
-export function AkademikView({ students, classes = [], programs = [] }: OtherViewsProps) {
+export function AkademikView({ students, classes = [], programs = [], teachers = [] }: OtherViewsProps) {
+  const activeTeachers = teachers.length > 0 ? teachers.map((t) => t.name) : USTADZ_LIST;
   const [subjects, setSubjects] = useState<Subject[]>(() => {
     const cached = localStorage.getItem('siakad_academic_subjects');
     return cached ? JSON.parse(cached) : [
@@ -123,7 +125,7 @@ export function AkademikView({ students, classes = [], programs = [] }: OtherVie
     setEditingSubject(null);
     setSubjectCode('');
     setSubjectName('');
-    setSubjectTeacher(USTADZ_LIST[0] || 'Ust. Ahmad Baihaqi');
+    setSubjectTeacher(activeTeachers[0] || 'Ust. Ahmad Baihaqi');
     setSubjectHours(2);
     setSubjectRoom('Kelas 10-A');
     setIsSubjectModalOpen(true);
@@ -727,7 +729,7 @@ export function AkademikView({ students, classes = [], programs = [] }: OtherVie
                   onChange={(e) => setSubjectTeacher(e.target.value)}
                   className="w-full px-3 py-2 border border-outline-variant rounded-md bg-surface text-xs outline-none cursor-pointer"
                 >
-                  {USTADZ_LIST.map((name) => (
+                  {activeTeachers.map((name) => (
                     <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
@@ -2606,9 +2608,9 @@ export function PengaturanView({
         setLocalUsers(JSON.parse(cached));
       } else {
         setLocalUsers([
-          { id: 'usr_1', fullName: 'KH. Abdullah, M.Pd.I', username: 'kiai_abdullah', password: 'admin123', email: 'kiai@madrasah.id', role: 'super_admin', status: 'Aktif', permittedViews: ['dashboard', 'students', 'kelas_program', 'tahfidz_input', 'tahfidz_history', 'absensi_pengajar', 'penilaian_ujian', 'poin_kedisiplinan', 'laporan', 'pengaturan'] },
-          { id: 'usr_2', fullName: 'Ust. Ahmad Baihaqi', username: 'ust_ahmad', password: 'ahmad123', email: 'ahmad@madrasah.id', role: 'ustadz', status: 'Aktif', permittedViews: ['dashboard', 'tahfidz_input', 'tahfidz_history', 'absensi_pengajar', 'penilaian_ujian', 'poin_kedisiplinan'] },
-          { id: 'usr_3', fullName: 'Wali Ahmad Fathanah', username: 'wali_fathanah', password: 'wali123', email: 'wali.fathanah@gmail.com', role: 'wali_santri', status: 'Aktif', permittedViews: ['dashboard', 'tahfidz_history'] },
+          { id: 'usr_1', fullName: 'KH. Abdullah, M.Pd.I', username: 'kiai_abdullah', password: 'admin123', email: 'kiai@madrasah.id', role: 'super_admin', status: 'Aktif', permittedViews: ['dashboard', 'students', 'kelas_program', 'tahfidz_input', 'tahfidz_history', 'absensi_pengajar', 'penilaian_ujian', 'poin_kedisiplinan', 'laporan', 'pengaturan'], photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCT6NXmNPs8fpwE88VxNJVMhwFUOQoNeheJsGxQ70-1Y5tYXP10y7dwfl43EW6J3tnUfqH3Mg5lMVkJGhiM11Pqjy-ufWSHFCQmzpRe9BlY5CdzpcnmdWPdH_JJ95B18EFcIfjBtXjSDayMkWX_0gSHiUzZJ3zbbcKemk9Ax77T6dFsYMJahcL7SHAOp7PGZ8EIv1tJZ7gZZQsraKNliWXlPtXW_FcFNDmPieof4P6L0Fu1f6_AKqU3' },
+          { id: 'usr_2', fullName: 'Ust. Ahmad Baihaqi', username: 'ust_ahmad', password: 'ahmad123', email: 'ahmad@madrasah.id', role: 'ustadz', status: 'Aktif', permittedViews: ['dashboard', 'tahfidz_input', 'tahfidz_history', 'absensi_pengajar', 'penilaian_ujian', 'poin_kedisiplinan'], photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCkLYXeLgpBsZWbBC8F6MHXFF40RID1YkqZxXrsP-H0Fbc2i6FRGU5MdMW47p6gSBNGUTFfcOxtK4ad4zdQb1uPKsU8QPZLRsw0N_eRN2nGl-jYeYqCnnYLH5ajiDH7hSrKl8YCSBLFTos7hWz65yS-Q6Pk7agAo3GUYYVPKihODvnjhD64eygg9QNugdZ4HPEsUlWvFJTOXyCv013c9pRr8AIf8RLXPJYoP9yC43dtDquPvx6b1Yyw' },
+          { id: 'usr_3', fullName: 'Wali Ahmad Fathanah', username: 'wali_fathanah', password: 'wali123', email: 'wali.fathanah@gmail.com', role: 'wali_santri', status: 'Aktif', permittedViews: ['dashboard', 'tahfidz_history'], photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDWm4KibatigPk2YlT4VSXuchCtAGmxn4rboR2upZPNUS_KrT-oNdadIaHBrvLzv3TjijYw3wHHerP4gUwuQcO7OOgvWY7SfUnMpw1iCO_2TP3L2Gm3YsXqdRmOWRxgsDoxO2ToruXaxrhbWfIwh8Z814Mx2uXq8IZPVa_qwOIPcv0fXdPLBg7klwYW8ENSObxGX2juxunP-LrC850vZB0HtUxW8KIroHw2WIUVGTBXrP32NyNWEg6g' },
         ]);
       }
     }

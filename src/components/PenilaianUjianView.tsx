@@ -48,27 +48,32 @@ export default function PenilaianUjianView({
   const [uasScore, setUasScore] = useState<number | ''>('');
   const [gradeNotes, setGradeNotes] = useState('');
 
-  // Dropdown class for adding grade
+  // Dropdown class and program for adding grade
   const [modalSelectedClass, setModalSelectedClass] = useState('');
+  const [modalSelectedProgram, setModalSelectedProgram] = useState<'Pondok' | 'Madrasah' | ''>('');
 
-  // When adding grade modal opens, synchronize modal selected class
+  // When adding grade modal opens, synchronize modal selected class and program
   useEffect(() => {
     if (isAddingGrade && isGradeModalOpen) {
       setModalSelectedClass(selectedClass);
+      setModalSelectedProgram(selectedProgram as 'Pondok' | 'Madrasah' | '');
     }
-  }, [isAddingGrade, isGradeModalOpen]);
+  }, [isAddingGrade, isGradeModalOpen, selectedClass, selectedProgram]);
 
   // Filter students for modal dropdown
   const modalStudents = students.filter(
-    (s) => s.class === modalSelectedClass && s.status === 'Aktif'
+    (s) =>
+      s.class === modalSelectedClass &&
+      s.status === 'Aktif' &&
+      (!modalSelectedProgram || s.program === modalSelectedProgram)
   );
 
-  // Set student to null when class changes to force user to choose from the dropdown
+  // Set student to null when class or program changes to force user to choose from the dropdown
   useEffect(() => {
     if (isAddingGrade) {
       setActiveStudent(null);
     }
-  }, [modalSelectedClass, isAddingGrade]);
+  }, [modalSelectedClass, modalSelectedProgram, isAddingGrade]);
 
   // Selected subject object
   const currentSubjectObj = subjects.find((s) => s.code === selectedSubjectCode) || null;
@@ -85,6 +90,8 @@ export default function PenilaianUjianView({
   // Open modal for specific student and subject (Edit or Direct Input)
   const handleOpenGradeInput = (stud: Student, sub: Subject) => {
     setIsAddingGrade(false);
+    setModalSelectedClass(stud.class || '');
+    setModalSelectedProgram(stud.program || '');
     const existingGrade = grades.find(
       (g) => g.studentId === stud.id && g.subjectCode === sub.code
     );
@@ -108,6 +115,7 @@ export default function PenilaianUjianView({
   const handleOpenAddGrade = () => {
     setIsAddingGrade(true);
     setModalSelectedClass('');
+    setModalSelectedProgram('');
     setActiveStudent(null);
     setActiveSubject(null);
     setAssignmentScore('');
@@ -601,6 +609,27 @@ export default function PenilaianUjianView({
                               {c}
                             </option>
                           ))}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant w-4 h-4" />
+                      </div>
+                    </div>
+
+                    {/* DROPDOWN PROGRAM STUDI */}
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                        Pilih Program Studi (Pondok / Madrasah)
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={modalSelectedProgram}
+                          onChange={(e) => {
+                            setModalSelectedProgram(e.target.value as 'Pondok' | 'Madrasah' | '');
+                          }}
+                          className="w-full appearance-none px-3 py-1.5 border border-outline-variant rounded bg-surface text-xs outline-none cursor-pointer font-semibold"
+                        >
+                          <option value="">Semua Program Studi</option>
+                          <option value="Pondok">Pondok</option>
+                          <option value="Madrasah">Madrasah</option>
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant w-4 h-4" />
                       </div>

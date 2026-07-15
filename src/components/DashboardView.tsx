@@ -27,6 +27,33 @@ export default function DashboardView({
   const [qrStatus, setQrStatus] = useState<'idle' | 'scanning' | 'success'>('idle');
   const [scannedSantri, setScannedSantri] = useState<Student | null>(null);
 
+  const [previewStudent, setPreviewStudent] = useState<{ name: string; photoUrl: string } | null>(null);
+
+  const handleDownloadPhoto = async (url: string, name: string) => {
+    try {
+      const response = await fetch(url, { mode: 'cors' });
+      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${name.replace(/\s+/g, '_')}_foto.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Gagal mengunduh menggunakan fetch, beralih ke pembukaan tab baru:", error);
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.download = `${name.replace(/\s+/g, '_')}_foto.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('siakad_dark_mode') === 'true');
 
   const toggleDarkMode = () => {
@@ -292,9 +319,25 @@ export default function DashboardView({
   const activeSantri = filteredStudents.filter((s) => s.status === 'Aktif').length;
   const nonActiveSantri = filteredStudents.filter((s) => s.status !== 'Aktif').length;
   
-  // Calculate average score of filtered pool
-  const averageScore = rawTotalSantri
-    ? Number((filteredStudents.reduce((sum, s) => sum + (s.totalScore || 85.0), 0) / rawTotalSantri).toFixed(1))
+  // Calculate average lines per day of Ziyadah (for the filtered students)
+  const ziyadahRecords = records.filter(r => {
+    const isZiyadah = r.type && r.type.toLowerCase() === 'ziyadah';
+    if (!isZiyadah) return false;
+    return filteredStudents.some(s => s.id === r.studentId || s.name.trim().toLowerCase() === r.studentName.trim().toLowerCase());
+  });
+
+  const ziyadahByDate: { [date: string]: number } = {};
+  ziyadahRecords.forEach(r => {
+    const lNum = parseInt(String(r.line));
+    const lines = isNaN(lNum) ? 0 : lNum;
+    ziyadahByDate[r.date] = (ziyadahByDate[r.date] || 0) + lines;
+  });
+
+  const uniqueDays = Object.keys(ziyadahByDate).length;
+  const totalZiyadahLines = Object.values(ziyadahByDate).reduce((sum, val) => sum + val, 0);
+
+  const averageScore = uniqueDays > 0
+    ? Number((totalZiyadahLines / uniqueDays).toFixed(1))
     : 0;
 
   // Juz categories distribution from filtered pool (using liveJuz)
@@ -461,8 +504,8 @@ export default function DashboardView({
             </div>
           </div>
           <div className="mt-2.5">
-            <h3 className="font-display text-xl font-extrabold text-primary">{averageScore} / 100</h3>
-            <p className="text-on-surface-variant text-[10px] mt-0.5">Kualitas tajwid &amp; kelancaran</p>
+            <h3 className="font-display text-xl font-extrabold text-primary">{averageScore} Baris / Hari</h3>
+            <p className="text-on-surface-variant text-[10px] mt-0.5">Rerata baris Ziyadah per hari</p>
           </div>
         </div>
 
@@ -899,8 +942,12 @@ export default function DashboardView({
                               <img
                                 alt={rec.studentName}
                                 referrerPolicy="no-referrer"
-                                className="w-8 h-8 rounded-full object-cover border border-outline-variant/40 shadow-xs animate-fade-in"
+                                className="w-8 h-8 rounded-full object-cover border border-outline-variant/40 shadow-xs animate-fade-in hover:scale-115 transition-transform duration-200 cursor-zoom-in relative z-10"
                                 src={studentObj.photoUrl}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewStudent({ name: rec.studentName, photoUrl: studentObj.photoUrl });
+                                }}
                               />
                             ) : (
                               <div className="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant/40 flex items-center justify-center text-[10px] font-bold text-on-surface-variant shadow-xs">
@@ -971,8 +1018,9 @@ export default function DashboardView({
                       {scannedSantri.photoUrl ? (
                         <img
                           alt={scannedSantri.name}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-primary shadow-sm"
+                          className="w-16 h-16 rounded-full object-cover border-2 border-primary shadow-sm hover:scale-110 transition-transform duration-200 cursor-zoom-in"
                           src={scannedSantri.photoUrl}
+                          onClick={() => setPreviewStudent({ name: scannedSantri.name, photoUrl: scannedSantri.photoUrl })}
                         />
                       ) : (
                         <div className="w-16 h-16 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold text-lg border-2 border-primary shadow-sm">
@@ -1243,6 +1291,56 @@ export default function DashboardView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Student Photo Preview Modal */}
+      {previewStudent && (
+        <div className="fixed inset-0 bg-[#000000]/85 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl border border-outline-variant max-w-sm w-full p-6 shadow-2xl relative text-left flex flex-col items-center">
+            {/* Close Button */}
+            <button
+              onClick={() => setPreviewStudent(null)}
+              className="absolute top-4 right-4 p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors cursor-pointer flex items-center justify-center"
+              title="Tutup"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            {/* Profile Detail */}
+            <div className="w-full text-center space-y-4">
+              <span className="material-symbols-outlined text-[40px] text-primary">account_circle</span>
+              <h3 className="font-display text-sm font-bold text-primary">Foto Profil Santri</h3>
+              <p className="text-xs font-bold text-on-surface line-clamp-1">{previewStudent.name}</p>
+
+              {/* Photo View Box */}
+              <div className="relative border border-outline-variant rounded-xl overflow-hidden bg-black/5 flex items-center justify-center max-w-[240px] mx-auto aspect-square shadow-inner">
+                <img
+                  src={previewStudent.photoUrl}
+                  alt={previewStudent.name}
+                  referrerPolicy="no-referrer"
+                  className="max-h-[220px] max-w-full object-contain hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+
+              {/* Download & Actions Bar */}
+              <div className="flex gap-2 justify-center pt-2 w-full">
+                <button
+                  onClick={() => handleDownloadPhoto(previewStudent.photoUrl, previewStudent.name)}
+                  className="flex items-center justify-center gap-1.5 bg-primary text-on-primary px-4 py-2 rounded-lg text-xs font-semibold hover:bg-primary-container transition-all shadow-xs cursor-pointer flex-1"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
+                  <span>Unduh Foto</span>
+                </button>
+                <button
+                  onClick={() => setPreviewStudent(null)}
+                  className="px-4 py-2 border border-outline-variant text-on-surface hover:bg-surface-container-low rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

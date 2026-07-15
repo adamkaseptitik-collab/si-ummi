@@ -8,6 +8,7 @@ interface LaporanPencapaianViewProps {
   classes?: string[];
   setView: (view: AppView) => void;
   setSelectedStudentId: (id: string | null) => void;
+  onDeleteRecord?: (id: string) => void;
 }
 
 export default function LaporanPencapaianView({
@@ -16,6 +17,7 @@ export default function LaporanPencapaianView({
   classes = [],
   setView,
   setSelectedStudentId,
+  onDeleteRecord,
 }: LaporanPencapaianViewProps) {
   // Filters State
   const [filterName, setFilterName] = useState('');
@@ -547,6 +549,7 @@ export default function LaporanPencapaianView({
                 <th className="px-4 py-3.5 font-bold text-center">Tartil</th>
                 <th className="px-4 py-3.5 font-bold text-center">Nilai</th>
                 <th className="px-4 py-3.5 font-bold">Catatan</th>
+                <th className="px-4 py-3.5 font-bold text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="font-sans text-xs text-on-surface divide-y divide-outline-variant/30">
@@ -618,12 +621,25 @@ export default function LaporanPencapaianView({
                       <td className="px-4 py-3 text-on-surface-variant max-w-[250px] truncate" title={notesStr}>
                         {notesStr}
                       </td>
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => {
+                            if (confirm('Apakah Anda yakin ingin menghapus data setoran ini?')) {
+                              onDeleteRecord?.(record.id);
+                            }
+                          }}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all shadow-3xs hover:shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">delete</span>
+                          <span>Hapus</span>
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={16} className="px-4 py-12 text-center text-on-surface-variant">
+                  <td colSpan={17} className="px-4 py-12 text-center text-on-surface-variant">
                     Tidak ada data rekor setoran yang cocok dengan filter pencarian.
                   </td>
                 </tr>
@@ -633,7 +649,7 @@ export default function LaporanPencapaianView({
               <tr className="bg-emerald-50/20">
                 <td colSpan={11} className="px-4 py-3 text-right font-semibold text-on-surface">Total Baris Hafalan Terfilter:</td>
                 <td className="px-4 py-3 text-center text-emerald-800 font-extrabold font-mono text-sm">{totalLines}</td>
-                <td colSpan={4} className="px-4 py-3"></td>
+                <td colSpan={5} className="px-4 py-3"></td>
               </tr>
             </tfoot>
           </table>

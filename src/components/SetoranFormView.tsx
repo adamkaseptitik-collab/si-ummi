@@ -80,6 +80,7 @@ export default function SetoranFormView({
   const [makharijul, setMakharijul] = useState(false);
   const [mad, setMad] = useState(false);
   const [ghunnah, setGhunnah] = useState(false);
+  const [keterangan, setKeterangan] = useState('');
 
   // Live Calculations
   const [finalScore, setFinalScore] = useState(87.6);
@@ -210,6 +211,7 @@ export default function SetoranFormView({
         madConsistency: mad,
         ghunnahHold: ghunnah
       },
+      keterangan,
       finalScore,
       grade,
       predikat
@@ -618,6 +620,20 @@ export default function SetoranFormView({
                     />
                     <span className="text-on-surface">Ghunnah kurang ditahan</span>
                   </label>
+                </div>
+
+                {/* Keterangan Manual */}
+                <div className="mt-3.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-1">
+                    Keterangan (Tulisan Manual)
+                  </label>
+                  <textarea
+                    value={keterangan}
+                    onChange={(e) => setKeterangan(e.target.value)}
+                    placeholder="Masukkan keterangan atau catatan manual mengenai setoran santri..."
+                    rows={2}
+                    className="w-full px-3 py-1.5 border border-outline-variant rounded bg-surface text-xs outline-none focus:border-primary transition-all font-medium resize-none"
+                  />
                 </div>
               </div>
 

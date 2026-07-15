@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Student, PointCategory, PointRecord } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Student, PointCategory, PointRecord, Teacher } from '../types';
 import { CLASSES, USTADZ_LIST } from '../data';
 
 interface CatatanPoinViewProps {
@@ -7,6 +7,7 @@ interface CatatanPoinViewProps {
   classes?: string[];
   categories: PointCategory[];
   records: PointRecord[];
+  teachers?: Teacher[];
   onAddRecord: (record: PointRecord) => void;
   onDeleteRecord: (id: string) => void;
   onUpdateCategories: (categories: PointCategory[]) => void;
@@ -18,6 +19,7 @@ export default function CatatanPoinView({
   classes = [],
   categories,
   records,
+  teachers = [],
   onAddRecord,
   onDeleteRecord,
   onUpdateCategories,
@@ -33,7 +35,16 @@ export default function CatatanPoinView({
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [recordNotes, setRecordNotes] = useState('');
   const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0]);
-  const [recordTeacher, setRecordTeacher] = useState(USTADZ_LIST[0] || 'Ust. Ahmad Baihaqi');
+  const [recordTeacher, setRecordTeacher] = useState('');
+
+  // Active teacher list from registered teachers or static list fallback
+  const activeTeachers = teachers.length > 0 ? teachers.map((t) => t.name) : USTADZ_LIST;
+
+  useEffect(() => {
+    if (activeTeachers.length > 0 && !recordTeacher) {
+      setRecordTeacher(activeTeachers[0]);
+    }
+  }, [activeTeachers, recordTeacher]);
 
   // Tab 2: Category Management State
   const [editingCategory, setEditingCategory] = useState<PointCategory | null>(null);
@@ -599,7 +610,7 @@ export default function CatatanPoinView({
                         onChange={(e) => setRecordTeacher(e.target.value)}
                         className="w-full px-3 py-2 border border-outline-variant rounded-md bg-surface text-xs outline-none cursor-pointer"
                       >
-                        {USTADZ_LIST.map((u) => (
+                        {activeTeachers.map((u) => (
                           <option key={u} value={u}>
                             {u}
                           </option>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { TeachingJournal } from '../types';
+import React, { useState, useEffect } from 'react';
+import { TeachingJournal, Teacher } from '../types';
 import { USTADZ_LIST, CLASSES } from '../data';
 
 interface LaporanPengajarViewProps {
@@ -7,6 +7,7 @@ interface LaporanPengajarViewProps {
   onAddJournal: (newJournal: TeachingJournal) => void;
   onDeleteJournal: (id: string) => void;
   classes?: string[];
+  teachers?: Teacher[];
 }
 
 export default function LaporanPengajarView({
@@ -14,7 +15,10 @@ export default function LaporanPengajarView({
   onAddJournal,
   onDeleteJournal,
   classes = CLASSES,
+  teachers = [],
 }: LaporanPengajarViewProps) {
+  const activeTeachers = teachers.length > 0 ? teachers.map((t) => t.name) : USTADZ_LIST;
+
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
@@ -22,7 +26,7 @@ export default function LaporanPengajarView({
 
   // Form States for New Journal
   const [formOpen, setFormOpen] = useState(false);
-  const [formTeacher, setFormTeacher] = useState(USTADZ_LIST[0]);
+  const [formTeacher, setFormTeacher] = useState('');
   const [formSubject, setFormSubject] = useState('Aqidah Akhlaq');
   const [formClass, setFormClass] = useState(classes[0] || '10 IPA 1');
   const [formDate, setFormDate] = useState(() => {
@@ -33,6 +37,12 @@ export default function LaporanPengajarView({
     return `${yyyy}-${mm}-${dd}`;
   });
   const [formTopic, setFormTopic] = useState('');
+
+  useEffect(() => {
+    if (activeTeachers.length > 0 && !formTeacher) {
+      setFormTeacher(activeTeachers[0]);
+    }
+  }, [activeTeachers, formTeacher]);
   const [formPresent, setFormPresent] = useState(25);
   const [formTotal, setFormTotal] = useState(25);
   const [formNotes, setFormNotes] = useState('');
@@ -290,7 +300,7 @@ export default function LaporanPengajarView({
             className="w-full appearance-none bg-surface-container-low border border-outline-variant/60 rounded-md py-1.5 pl-3 pr-8 text-xs font-sans text-on-surface outline-none cursor-pointer"
           >
             <option value="">Semua Pengajar</option>
-            {USTADZ_LIST.map((t) => (
+            {activeTeachers.map((t) => (
               <option key={t} value={t}>
                 {t}
               </option>
@@ -457,7 +467,7 @@ export default function LaporanPengajarView({
                     onChange={(e) => setFormTeacher(e.target.value)}
                     className="w-full px-3 py-2 border border-outline-variant/80 rounded-md text-xs focus:ring-1 focus:ring-primary outline-none cursor-pointer font-medium"
                   >
-                    {USTADZ_LIST.map((name) => (
+                    {activeTeachers.map((name) => (
                       <option key={name} value={name}>
                         {name}
                       </option>
