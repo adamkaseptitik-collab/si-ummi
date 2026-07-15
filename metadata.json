@@ -1,0 +1,6 @@
+{
+  "name": "Siakad Madrasah",
+  "description": "Sistem Informasi Akademik Terpadu untuk Madrasah, mengelola data santri, setoran hafalan tahfidz, nilai, absensi, dan keuangan secara profesional.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
