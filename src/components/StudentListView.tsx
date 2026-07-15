@@ -60,6 +60,35 @@ export default function StudentListView({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
+  // Get unique, sorted entrance years dynamically from filtered student list (excluding the year filter itself so you can switch)
+  const studentsFilteredForYears = students.filter((student) => {
+    const matchesSearch =
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.nisn && student.nisn.includes(searchTerm)) ||
+      (student.nip && student.nip.includes(searchTerm)) ||
+      (student.nis && student.nis.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (student.parentName && student.parentName.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesClass =
+      !selectedClass || selectedClass === 'Semua Kelas' || student.class === selectedClass;
+
+    const matchesProgram =
+      !selectedProgram || selectedProgram === 'Semua Program' || student.program === selectedProgram;
+
+    let matchesStatus = true;
+    if (selectedStatus === 'aktif') {
+      matchesStatus = student.status === 'Aktif';
+    } else if (selectedStatus === 'alumni') {
+      matchesStatus = student.status === 'Alumni';
+    }
+
+    return matchesSearch && matchesClass && matchesProgram && matchesStatus;
+  });
+
+  const entryYears = Array.from(
+    new Set(studentsFilteredForYears.map((s) => s.entryYear).filter((y): y is string => !!y))
+  ).sort((a, b) => b.localeCompare(a));
+
   // Reset Filters
   const handleResetFilters = () => {
     setSearchTerm('');
@@ -540,9 +569,9 @@ export default function StudentListView({
             className="w-full appearance-none bg-surface-container-low border border-outline-variant/60 rounded-md py-1.5 pl-3 pr-8 text-xs font-sans text-on-surface outline-none cursor-pointer"
           >
             <option value="">Semua Tahun Masuk</option>
-            {['2021', '2022', '2023', '2024', '2025', '2026'].map((year) => (
+            {entryYears.map((year) => (
               <option key={year} value={year}>
-                Tahun Masuk {year}
+                {year}
               </option>
             ))}
           </select>

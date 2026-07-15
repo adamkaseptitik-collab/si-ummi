@@ -26,6 +26,8 @@ export default function CatatanPoinView({
   const [activeTab, setActiveTab] = useState<'log' | 'categories'>('log');
 
   // Tab 1: Log State
+  const [formSelectedClass, setFormSelectedClass] = useState('');
+  const [formSelectedProgram, setFormSelectedProgram] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [recordType, setRecordType] = useState<'Pelanggaran' | 'Prestasi'>('Pelanggaran');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -39,9 +41,128 @@ export default function CatatanPoinView({
   const [catName, setCatName] = useState('');
   const [catPoints, setCatPoints] = useState<number>(-10);
 
+  const [showImportBox, setShowImportBox] = useState(false);
+  const [pasteData, setPasteData] = useState('');
+  const [importError, setImportError] = useState('');
+  const [importSuccess, setImportSuccess] = useState('');
+
+  const handleExportCategories = () => {
+    const headers = ['No', 'Tipe', 'Nama Sub Kategori', 'Bobot Poin'];
+    const rows = categories.map((cat, index) => [
+      index + 1,
+      cat.type,
+      cat.name,
+      cat.points > 0 ? `+${cat.points}` : `${cat.points}`
+    ]);
+    const csvLines = [
+      'sep=,',
+      headers.join(','),
+      ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(','))
+    ];
+    const csvContent = "\uFEFF" + csvLines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "kategori_poin_siakad.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCategoriesCSV = (text: string) => {
+    try {
+      setImportError('');
+      setImportSuccess('');
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length < 2) {
+        setImportError('Data tidak valid atau kosong.');
+        return;
+      }
+
+      const newCats: PointCategory[] = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const cols: string[] = [];
+        let cur = '';
+        let insideQuote = false;
+        const line = lines[i];
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            insideQuote = !insideQuote;
+          } else if (char === ',' && !insideQuote) {
+            cols.push(cur.trim());
+            cur = '';
+          } else {
+            cur += char;
+          }
+        }
+        cols.push(cur.trim());
+
+        if (cols.length < 3) continue;
+
+        const typeRaw = cols[0].replace(/^"|"$/g, '');
+        const nameVal = cols[1].replace(/^"|"$/g, '');
+        const pointsRaw = cols[2].replace(/^"|"$/g, '');
+
+        const type: 'Pelanggaran' | 'Prestasi' = (typeRaw.toLowerCase() === 'prestasi' || typeRaw.toLowerCase() === 'skor plus' || typeRaw.toLowerCase() === 'bonus') 
+          ? 'Prestasi' 
+          : 'Pelanggaran';
+        const name = nameVal;
+        const points = parseInt(pointsRaw, 10);
+
+        if (!name) continue;
+        if (isNaN(points)) continue;
+
+        newCats.push({
+          id: 'cat_' + Math.random().toString(36).substr(2, 9),
+          type,
+          name,
+          points
+        });
+      }
+
+      if (newCats.length === 0) {
+        setImportError('Tidak ada data kategori valid yang ditemukan.');
+        return;
+      }
+
+      onUpdateCategories([...categories, ...newCats]);
+      setImportSuccess(`Berhasil mengimpor ${newCats.length} sub-kategori poin.`);
+      setPasteData('');
+      setTimeout(() => {
+        setShowImportBox(false);
+        setImportSuccess('');
+      }, 2000);
+    } catch (err) {
+      setImportError('Format CSV salah atau tidak dapat dibaca.');
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        handleImportCategoriesCSV(text);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Search/Filters for Logs
   const [logSearch, setLogSearch] = useState('');
   const [logClass, setLogClass] = useState('');
+
+  // Filter students by formSelectedClass and formSelectedProgram for Tab 1 student selector
+  const formFilteredStudents = students.filter((s) => {
+    const matchClass = !formSelectedClass || s.class === formSelectedClass;
+    const matchProgram = !formSelectedProgram || s.program === formSelectedProgram;
+    return matchClass && matchProgram;
+  });
 
   // Filter categories by selected recordType for Tab 1 dropdown
   const filteredCategoriesForType = categories.filter((c) => c.type === recordType);
@@ -285,6 +406,43 @@ export default function CatatanPoinView({
             </h3>
 
             <form onSubmit={handleRecordSubmit} className="space-y-4">
+              {/* Kelas */}
+              <div>
+                <label className="block font-semibold mb-1 text-on-surface">Pilih Kelas</label>
+                <select
+                  value={formSelectedClass}
+                  onChange={(e) => {
+                    setFormSelectedClass(e.target.value);
+                    setSelectedStudentId('');
+                  }}
+                  className="w-full px-3 py-2 border border-outline-variant rounded-md bg-surface text-xs outline-none cursor-pointer"
+                >
+                  <option value="">-- Semua Kelas --</option>
+                  {classes.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Program Studi */}
+              <div>
+                <label className="block font-semibold mb-1 text-on-surface">Pilih Program Studi</label>
+                <select
+                  value={formSelectedProgram}
+                  onChange={(e) => {
+                    setFormSelectedProgram(e.target.value);
+                    setSelectedStudentId('');
+                  }}
+                  className="w-full px-3 py-2 border border-outline-variant rounded-md bg-surface text-xs outline-none cursor-pointer"
+                >
+                  <option value="">-- Semua Program Studi --</option>
+                  <option value="Pondok">Pondok</option>
+                  <option value="Madrasah">Madrasah</option>
+                </select>
+              </div>
+
               {/* Santri */}
               <div>
                 <label className="block font-semibold mb-1 text-on-surface">Pilih Santri</label>
@@ -294,9 +452,9 @@ export default function CatatanPoinView({
                   className="w-full px-3 py-2 border border-outline-variant rounded-md bg-surface text-xs outline-none cursor-pointer"
                 >
                   <option value="">-- Pilih Santri --</option>
-                  {students.map((s) => (
+                  {formFilteredStudents.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} ({s.class})
+                      {s.name} ({s.class} - {s.program})
                     </option>
                   ))}
                 </select>
@@ -600,10 +758,85 @@ export default function CatatanPoinView({
 
           {/* List of current Dropdowns */}
           <div className="bg-white border border-outline-variant/60 rounded-xl overflow-hidden shadow-2xs col-span-2">
-            <div className="p-4 border-b border-outline-variant/40">
-              <h3 className="font-display text-sm font-bold text-primary">Daftar Opsi Dropdown Saat Ini</h3>
-              <p className="text-on-surface-variant text-[11px] mt-0.5">Ubah atau hapus sub-kategori poin yang tersedia untuk ustadz</p>
+            <div className="p-4 border-b border-outline-variant/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-low/20">
+              <div>
+                <h3 className="font-display text-sm font-bold text-primary">Daftar Opsi Dropdown Saat Ini</h3>
+                <p className="text-on-surface-variant text-[11px] mt-0.5">Ubah atau hapus sub-kategori poin yang tersedia untuk ustadz</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleExportCategories}
+                  className="px-3 py-1.5 bg-primary text-on-primary rounded-lg font-semibold text-[11px] flex items-center gap-1.5 hover:bg-primary-container transition-all cursor-pointer shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-[15px]">download</span>
+                  Export CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowImportBox(!showImportBox)}
+                  className="px-3 py-1.5 bg-secondary text-on-secondary rounded-lg font-semibold text-[11px] flex items-center gap-1.5 hover:bg-secondary-container transition-all cursor-pointer shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-[15px]">upload</span>
+                  Import CSV
+                </button>
+              </div>
             </div>
+
+            {showImportBox && (
+              <div className="p-4 bg-surface-container-low border-b border-outline-variant/60 animate-fade-in text-xs space-y-3">
+                <div className="font-bold text-primary">Formulir Import Kategori Poin</div>
+                <p className="text-on-surface-variant text-[11px] leading-relaxed">
+                  Pilih file CSV dengan baris pertama sebagai header. Struktur kolom yang wajib adalah: <br />
+                  <code className="bg-white px-1 py-0.5 border rounded font-mono text-[10px]">Tipe, Nama Sub Kategori, Bobot Poin</code><br />
+                  Contoh isi baris: <code className="bg-white px-1 py-0.5 border rounded font-mono text-[10px]">Pelanggaran, "Tidak Salat Berjamaah", -15</code>
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <label className="bg-white border border-outline-variant px-3 py-2 rounded-md hover:bg-surface-container-high transition-colors cursor-pointer text-xs font-semibold flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
+                    Pilih File CSV
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <span className="text-on-surface-variant/70 text-[10px]">Atau tempel data CSV langsung di bawah:</span>
+                </div>
+
+                <div className="space-y-2">
+                  <textarea
+                    rows={4}
+                    value={pasteData}
+                    onChange={(e) => setPasteData(e.target.value)}
+                    placeholder="Tipe, Nama Sub Kategori, Bobot Poin&#10;Pelanggaran, Terlambat Masuk Kelas, -10&#10;Prestasi, Membantu Guru, 15"
+                    className="w-full p-2.5 bg-white border border-outline-variant/80 rounded-md font-mono text-[11px] outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  />
+                  {pasteData && (
+                    <button
+                      type="button"
+                      onClick={() => handleImportCategoriesCSV(pasteData)}
+                      className="px-4 py-2 bg-primary text-on-primary rounded-lg font-semibold hover:bg-primary-container transition-all cursor-pointer"
+                    >
+                      Proses Impor Teks
+                    </button>
+                  )}
+                </div>
+
+                {importError && (
+                  <div className="p-2.5 bg-red-50 text-red-700 border border-red-200 rounded-md text-[11px] font-medium animate-fade-in">
+                    {importError}
+                  </div>
+                )}
+                {importSuccess && (
+                  <div className="p-2.5 bg-green-50 text-green-700 border border-green-200 rounded-md text-[11px] font-medium animate-fade-in">
+                    {importSuccess}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">

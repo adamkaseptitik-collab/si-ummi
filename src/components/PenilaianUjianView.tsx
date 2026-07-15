@@ -35,6 +35,7 @@ export default function PenilaianUjianView({
   // Selected filters
   const [selectedSubjectCode, setSelectedSubjectCode] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedProgram, setSelectedProgram] = useState('');
   const [gradeNameSearch, setGradeNameSearch] = useState('');
 
   // Modal State for Grades Input/Edit
@@ -72,11 +73,12 @@ export default function PenilaianUjianView({
   // Selected subject object
   const currentSubjectObj = subjects.find((s) => s.code === selectedSubjectCode) || null;
 
-  // Filter students by selected class and name search for main table list
+  // Filter students by selected class, program study and name search for main table list
   const filteredStudents = students.filter(
     (s) =>
       s.class === selectedClass &&
       s.status === 'Aktif' &&
+      (!selectedProgram || s.program === selectedProgram) &&
       (!gradeNameSearch || s.name.toLowerCase().includes(gradeNameSearch.toLowerCase()))
   );
 
@@ -364,6 +366,25 @@ export default function PenilaianUjianView({
                   {c}
                 </option>
               ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant w-4 h-4" />
+          </div>
+        </div>
+
+        {/* Dropdown Program Studi */}
+        <div className="space-y-1">
+          <label className="block text-[10px] uppercase font-bold tracking-wider text-on-surface-variant">
+            Program Studi
+          </label>
+          <div className="relative min-w-[140px]">
+            <select
+              value={selectedProgram}
+              onChange={(e) => setSelectedProgram(e.target.value)}
+              className="w-full appearance-none pl-3 pr-8 py-1.5 border border-outline-variant rounded bg-surface text-xs outline-none cursor-pointer font-semibold"
+            >
+              <option value="">Semua Program</option>
+              <option value="Pondok">Pondok</option>
+              <option value="Madrasah">Madrasah</option>
             </select>
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant w-4 h-4" />
           </div>

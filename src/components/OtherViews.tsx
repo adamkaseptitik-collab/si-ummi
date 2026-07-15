@@ -382,30 +382,6 @@ export function AkademikView({ students, classes = [], programs = [] }: OtherVie
         </p>
       </div>
 
-      {/* Tabs Switcher */}
-      <div className="flex border-b border-outline-variant/60 gap-4">
-        <button
-          onClick={() => setAcademicTab('subjects')}
-          className={`pb-2.5 font-bold tracking-wider text-[11px] uppercase transition-all relative flex items-center gap-2 cursor-pointer ${
-            academicTab === 'subjects' ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[18px]">menu_book</span>
-          <span>Kurikulum &amp; Pelajaran</span>
-          {academicTab === 'subjects' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
-        </button>
-        <button
-          onClick={() => setAcademicTab('grades')}
-          className={`pb-2.5 font-bold tracking-wider text-[11px] uppercase transition-all relative flex items-center gap-2 cursor-pointer ${
-            academicTab === 'grades' ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[18px]">edit_document</span>
-          <span>Penilaian Ujian Santri</span>
-          {academicTab === 'grades' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
-        </button>
-      </div>
-
       {academicTab === 'subjects' ? (
         <>
           {/* Quick Stats Grid */}
@@ -494,8 +470,8 @@ export function AkademikView({ students, classes = [], programs = [] }: OtherVie
           </div>
         </>
       ) : (
-        /* Grading Tab */
-        <div className="space-y-6 animate-fade-in">
+        /* Grading Tab (Removed) */
+        <div className="hidden">
           {/* Filtering Header Bar */}
           <div className="bg-white border border-outline-variant/60 p-4 rounded-xl flex flex-wrap gap-4 items-end">
             <div>
@@ -1090,7 +1066,10 @@ export function LaporanView({
   const filteredGrades = activeGrades.filter((g) => {
     const matchesName = !filterName || g.studentName.toLowerCase().includes(filterName.toLowerCase());
     const matchesClass = !filterClass || g.class === filterClass;
-    return matchesName && matchesClass;
+    const student = students.find((s) => s.id === g.studentId || s.name.toLowerCase() === g.studentName.toLowerCase());
+    const sProgram = student ? student.program : '';
+    const matchesProgram = !filterProgram || sProgram === filterProgram;
+    return matchesName && matchesClass && matchesProgram;
   });
 
   const filteredTahfidz = activeRecords.filter((r) => {
@@ -1119,18 +1098,24 @@ export function LaporanView({
   const filteredStudentAttendance = activeStudentAttendance.filter((r) => {
     const matchesName = !filterName || r.studentName.toLowerCase().includes(filterName.toLowerCase());
     const matchesClass = !filterClass || r.class === filterClass;
+    const student = students.find((s) => s.id === r.studentId || s.name.toLowerCase() === r.studentName.toLowerCase());
+    const sProgram = student ? student.program : '';
+    const matchesProgram = !filterProgram || sProgram === filterProgram;
     const matchesStart = !startDate || r.date >= startDate;
     const matchesEnd = !endDate || r.date <= endDate;
-    return matchesName && matchesClass && matchesStart && matchesEnd;
+    return matchesName && matchesClass && matchesProgram && matchesStart && matchesEnd;
   });
 
   const filteredPoints = activePoints.filter((r) => {
     const matchesName = !filterName || r.studentName.toLowerCase().includes(filterName.toLowerCase());
     const matchesClass = !filterClass || r.class === filterClass;
+    const student = students.find((s) => s.id === r.studentId || s.name.toLowerCase() === r.studentName.toLowerCase());
+    const sProgram = student ? student.program : '';
+    const matchesProgram = !filterProgram || sProgram === filterProgram;
     const matchesType = !filterPointType || r.type === filterPointType;
     const matchesStart = !startDate || r.date >= startDate;
     const matchesEnd = !endDate || r.date <= endDate;
-    return matchesName && matchesClass && matchesType && matchesStart && matchesEnd;
+    return matchesName && matchesClass && matchesProgram && matchesType && matchesStart && matchesEnd;
   });
 
   // Reset Filters
@@ -1895,7 +1880,7 @@ export function LaporanView({
           </div>
 
           {/* Filter Program */}
-          {(activeTab === 'students' || activeTab === 'tahfidz') && (
+          {(activeTab === 'students' || activeTab === 'tahfidz' || activeTab === 'student_attendance' || activeTab === 'grades' || activeTab === 'points') && (
             <div className="space-y-1">
               <label className="block text-on-surface-variant font-bold text-[10px] uppercase">Program Studi</label>
               <select

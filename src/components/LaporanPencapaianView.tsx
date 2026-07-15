@@ -5,6 +5,7 @@ import { CLASSES, PROGRAMS } from '../data';
 interface LaporanPencapaianViewProps {
   students: Student[];
   records: MemorizationRecord[];
+  classes?: string[];
   setView: (view: AppView) => void;
   setSelectedStudentId: (id: string | null) => void;
 }
@@ -12,6 +13,7 @@ interface LaporanPencapaianViewProps {
 export default function LaporanPencapaianView({
   students,
   records,
+  classes = [],
   setView,
   setSelectedStudentId,
 }: LaporanPencapaianViewProps) {
@@ -408,7 +410,7 @@ export default function LaporanPencapaianView({
               className="w-full px-3 py-1.5 bg-surface border border-outline-variant/80 rounded-md text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
             >
               <option value="">Semua Kelas</option>
-              {CLASSES.filter((c) => c !== 'Semua Kelas').map((c) => (
+              {classes.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>

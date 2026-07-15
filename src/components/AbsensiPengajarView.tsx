@@ -275,21 +275,25 @@ export default function AbsensiPengajarView({
   // STATE & LOGIC: STUDENT ATTENDANCE (SANTRI)
   // ==========================================
   const [studentSelectedClass, setStudentSelectedClass] = useState('');
+  const [studentSelectedProgram, setStudentSelectedProgram] = useState('');
   const [studentSelectedId, setStudentSelectedId] = useState('');
   const [studentAttendanceStatus, setStudentAttendanceStatus] = useState<'Hadir' | 'Izin' | 'Sakit' | 'Alpa' | ''>('');
   const [studentAttendanceNotes, setStudentAttendanceNotes] = useState('');
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
   const [studentSelectedJam, setStudentSelectedJam] = useState('');
 
-  // List of active students in the selected class
+  // List of active students in the selected class and program
   const classStudents = students.filter(
-    (s) => s.class === studentSelectedClass && s.status === 'Aktif'
+    (s) =>
+      s.class === studentSelectedClass &&
+      (!studentSelectedProgram || s.program === studentSelectedProgram) &&
+      s.status === 'Aktif'
   );
 
-  // Sync default selected student when class changes
+  // Sync default selected student when class or program changes
   useEffect(() => {
     setStudentSelectedId('');
-  }, [studentSelectedClass]);
+  }, [studentSelectedClass, studentSelectedProgram]);
 
   // Filter student attendance records for selected class and date
   const classStudentAttendance = studentAttendance.filter(
@@ -960,6 +964,19 @@ export default function AbsensiPengajarView({
                           {cls}
                         </option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-semibold mb-1">Pilih Program Studi</label>
+                    <select
+                      value={studentSelectedProgram}
+                      onChange={(e) => setStudentSelectedProgram(e.target.value)}
+                      className="w-full bg-white/10 border border-white/15 rounded-lg px-3 py-1.5 text-white text-xs font-semibold outline-none focus:ring-1 focus:ring-secondary-fixed"
+                    >
+                      <option value="" className="bg-primary text-white font-medium">Semua Program</option>
+                      <option value="Pondok" className="bg-primary text-white font-medium">Pondok</option>
+                      <option value="Madrasah" className="bg-primary text-white font-medium">Madrasah</option>
                     </select>
                   </div>
 

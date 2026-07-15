@@ -883,6 +883,7 @@ export default function App() {
             <LaporanPencapaianView
               students={students}
               records={records}
+              classes={classes}
               setView={setView}
               setSelectedStudentId={setSelectedStudentId}
             />

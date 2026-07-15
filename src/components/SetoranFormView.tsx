@@ -52,11 +52,14 @@ interface SetoranFormViewProps {
 export default function SetoranFormView({
   students,
   teachers = [],
+  classes = [],
   onAddRecord,
   onUpdateStudentStats,
   setView,
 }: SetoranFormViewProps) {
   // Form State
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
   const [ustadz, setUstadz] = useState('');
@@ -121,6 +124,12 @@ export default function SetoranFormView({
         (s.nip && s.nip.includes(searchQuery)) ||
         (s.id && s.id.includes(searchQuery))
       );
+
+  const filteredStudentsByClassAndProgram = students.filter((s) => {
+    const matchClass = !selectedClass || s.class === selectedClass;
+    const matchProgram = !selectedProgram || s.program === selectedProgram;
+    return matchClass && matchProgram;
+  });
 
   const selectedStudent = students.find(s => s.id === selectedStudentId);
 
@@ -241,28 +250,79 @@ export default function SetoranFormView({
               <span>Identitas Santri</span>
             </h3>
 
-            <div className="relative">
-              <label className="block text-on-surface-variant font-semibold mb-1 leading-none uppercase text-[10px] tracking-wider">
-                Pilih Santri
-              </label>
-              <div className="relative">
-                <select
-                  value={selectedStudentId}
-                  onChange={(e) => {
-                    setSelectedStudentId(e.target.value);
-                  }}
-                  className="w-full pl-3 pr-10 py-2.5 border border-outline-variant/80 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:border-primary bg-white outline-none font-medium appearance-none cursor-pointer"
-                >
-                  <option value="">-- Pilih Santri --</option>
-                  {students.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.class})
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[20px]">
-                  arrow_drop_down
-                </span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1 leading-none uppercase text-[10px] tracking-wider">
+                  Pilih Kelas
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedClass}
+                    onChange={(e) => {
+                      setSelectedClass(e.target.value);
+                      setSelectedStudentId('');
+                    }}
+                    className="w-full pl-3 pr-10 py-2.5 border border-outline-variant/80 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:border-primary bg-white outline-none font-medium appearance-none cursor-pointer"
+                  >
+                    <option value="">-- Semua Kelas --</option>
+                    {classes.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[20px]">
+                    arrow_drop_down
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1 leading-none uppercase text-[10px] tracking-wider">
+                  Pilih Program Studi
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedProgram}
+                    onChange={(e) => {
+                      setSelectedProgram(e.target.value);
+                      setSelectedStudentId('');
+                    }}
+                    className="w-full pl-3 pr-10 py-2.5 border border-outline-variant/80 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:border-primary bg-white outline-none font-medium appearance-none cursor-pointer"
+                  >
+                    <option value="">-- Semua Program Studi --</option>
+                    <option value="Pondok">Pondok</option>
+                    <option value="Madrasah">Madrasah</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[20px]">
+                    arrow_drop_down
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1 leading-none uppercase text-[10px] tracking-wider">
+                  Pilih Santri
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedStudentId}
+                    onChange={(e) => {
+                      setSelectedStudentId(e.target.value);
+                    }}
+                    className="w-full pl-3 pr-10 py-2.5 border border-outline-variant/80 rounded-lg text-xs focus:ring-1 focus:ring-primary focus:border-primary bg-white outline-none font-medium appearance-none cursor-pointer"
+                  >
+                    <option value="">-- Pilih Santri --</option>
+                    {filteredStudentsByClassAndProgram.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.class} - {s.program})
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[20px]">
+                    arrow_drop_down
+                  </span>
+                </div>
               </div>
             </div>
 
