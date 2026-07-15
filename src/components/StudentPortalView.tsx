@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Student, MemorizationRecord, AnnouncementItem, AppView, UserRole } from '../types';
-import { INITIAL_MEMORIZATION, ANNOUNCEMENT_ITEMS } from '../data';
+import { Student, MemorizationRecord, AnnouncementItem, AppView, UserRole, AcademicGrade, PointRecord, StudentAttendance } from '../types';
+import { ANNOUNCEMENT_ITEMS } from '../data';
 
 interface StudentPortalViewProps {
   student: Student;
   allStudents: Student[];
+  records: MemorizationRecord[];
+  pointRecords?: PointRecord[];
+  grades?: AcademicGrade[];
+  studentAttendance?: StudentAttendance[];
   onSelectStudent: (id: string | null) => void;
   setView: (view: AppView) => void;
   userRole?: UserRole;
@@ -13,6 +17,10 @@ interface StudentPortalViewProps {
 export default function StudentPortalView({
   student,
   allStudents,
+  records,
+  pointRecords = [],
+  grades = [],
+  studentAttendance = [],
   onSelectStudent,
   setView,
   userRole,
@@ -20,9 +28,41 @@ export default function StudentPortalView({
   const [activeTab, setActiveTab] = useState<'grades' | 'violations' | 'notes'>('grades');
   const [certModalOpen, setCertModalOpen] = useState(false);
 
-  // Find all setoran history for this student
-  const studentRecords = INITIAL_MEMORIZATION.filter((r) => r.studentId === student.id);
+  // Find all setoran history dynamically for this student
+  const studentRecords = (records || []).filter((r) => r.studentId === student.id);
   const latestRecord: MemorizationRecord | null = studentRecords.length > 0 ? studentRecords[0] : null;
+
+  // Compute other dynamic data
+  const studentGrades = (grades || []).filter((g) => g.studentId === student.id);
+  const studentPoints = (pointRecords || []).filter((p) => p.studentId === student.id);
+
+  const hasHafalan = student.tahfidzJuz > 0 || studentRecords.length > 0;
+  const hasScore = student.totalScore > 0 || studentRecords.length > 0;
+
+  // Calculate average of each memorization record
+  const averageScoreVal = studentRecords.length > 0
+    ? Number((studentRecords.reduce((sum, r) => sum + r.finalScore, 0) / studentRecords.length).toFixed(1))
+    : 0;
+
+  const letterGrade = averageScoreVal >= 85 ? 'A' : averageScoreVal >= 70 ? 'B' : averageScoreVal > 0 ? 'C' : '-';
+
+  // Calculate dynamic attendance rate from studentAttendance logs
+  const studentLogs = (studentAttendance || []).filter((sa) => sa.studentId === student.id);
+  const hadirCount = studentLogs.filter((sa) => sa.status === 'Hadir').length;
+  const sakitCount = studentLogs.filter((sa) => sa.status === 'Sakit').length;
+  const izinCount = studentLogs.filter((sa) => sa.status === 'Izin').length;
+  const alpaCount = studentLogs.filter((sa) => sa.status === 'Alpa').length;
+  const attendanceRateVal = studentLogs.length > 0
+    ? Math.round((hadirCount / studentLogs.length) * 100)
+    : (student.attendanceRate || 0);
+
+  // Calculate total baris from 'Ziyadah' memorization records
+  const totalBarisZiyadah = studentRecords
+    .filter((r) => r.type === 'Ziyadah')
+    .reduce((sum, r) => {
+      const parsed = parseInt(r.line);
+      return sum + (isNaN(parsed) ? 0 : parsed);
+    }, 0);
 
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('siakad_dark_mode') === 'true');
 
@@ -241,7 +281,13 @@ export default function StudentPortalView({
                 <span className="material-symbols-outlined text-primary text-[18px]">menu_book</span>
               </div>
               <div className="font-display text-2xl font-bold text-primary mt-2">
-                {student.tahfidzJuz} <span className="text-xs font-sans text-on-surface-variant">Juz</span>
+                {hasHafalan ? (
+                  <>
+                    {totalBarisZiyadah} <span className="text-xs font-sans text-on-surface-variant">Baris (Ziyadah)</span>
+                  </>
+                ) : (
+                  <span className="text-on-surface-variant/40">-</span>
+                )}
               </div>
             </div>
 
@@ -252,8 +298,14 @@ export default function StudentPortalView({
                 <span className="material-symbols-outlined text-primary text-[18px]">school</span>
               </div>
               <div className="font-display text-2xl font-bold text-primary mt-2">
-                {student.totalScore >= 90 ? 'A' : 'B'}{' '}
-                <span className="text-xs font-sans text-on-surface-variant">({student.totalScore.toFixed(0)})</span>
+                {averageScoreVal > 0 ? (
+                  <>
+                    {letterGrade}{' '}
+                    <span className="text-xs font-sans text-on-surface-variant">({averageScoreVal.toFixed(1)})</span>
+                  </>
+                ) : (
+                  <span className="text-on-surface-variant/40">-</span>
+                )}
               </div>
             </div>
 
@@ -263,8 +315,19 @@ export default function StudentPortalView({
                 <span className="font-sans text-xs font-bold text-on-surface-variant uppercase tracking-wider leading-none">Kehadiran</span>
                 <span className="material-symbols-outlined text-primary text-[18px]">calendar_month</span>
               </div>
-              <div className="font-display text-2xl font-bold text-primary mt-2">
-                {student.attendanceRate}%
+              <div className="font-sans text-[11px] font-semibold text-primary mt-2 space-y-1">
+                <div className="flex justify-between items-center bg-blue-50/60 text-blue-800 px-2 py-0.5 rounded-sm">
+                  <span>Sakit</span>
+                  <span className="font-bold font-mono text-xs">{sakitCount}</span>
+                </div>
+                <div className="flex justify-between items-center bg-amber-50/60 text-amber-800 px-2 py-0.5 rounded-sm">
+                  <span>Izin</span>
+                  <span className="font-bold font-mono text-xs">{izinCount}</span>
+                </div>
+                <div className="flex justify-between items-center bg-red-50/60 text-red-800 px-2 py-0.5 rounded-sm">
+                  <span>Alpa</span>
+                  <span className="font-bold font-mono text-xs">{alpaCount}</span>
+                </div>
               </div>
             </div>
 
@@ -275,7 +338,7 @@ export default function StudentPortalView({
                 <span className="material-symbols-outlined text-amber-600 text-[18px]">emoji_events</span>
               </div>
               <div className="font-sans text-xs font-bold text-amber-900 mt-2 truncate max-w-full">
-                {student.latestAchievement || 'Santri Berbakat'}
+                {student.latestAchievement || <span className="text-amber-800/40">-</span>}
               </div>
             </div>
           </div>
@@ -298,11 +361,19 @@ export default function StudentPortalView({
           <div className="flex-1 flex flex-col md:flex-row gap-6 items-center">
             {/* Simulated Chart Area */}
             <div className="w-full md:w-1/2 h-36 bg-surface-container-low rounded-lg border border-outline-variant/40 flex items-end justify-between p-4 relative">
-              <div className="w-[15%] bg-secondary-fixed-dim rounded-t-md h-[30%]"></div>
-              <div className="w-[15%] bg-secondary-fixed-dim rounded-t-md h-[45%]"></div>
-              <div className="w-[15%] bg-secondary-fixed-dim rounded-t-md h-[60%]"></div>
-              <div className="w-[15%] bg-secondary-fixed-dim rounded-t-md h-[78%]"></div>
-              <div className="w-[15%] bg-primary rounded-t-md h-[100%] shadow-[0_0_8px_rgba(0,53,39,0.3)]"></div>
+              {hasHafalan ? (
+                <>
+                  <div className="w-[15%] bg-secondary-fixed-dim rounded-t-md h-[30%]"></div>
+                  <div className="w-[15%] bg-secondary-fixed-dim rounded-t-md h-[45%]"></div>
+                  <div className="w-[15%] bg-secondary-fixed-dim rounded-t-md h-[60%]"></div>
+                  <div className="w-[15%] bg-secondary-fixed-dim rounded-t-md h-[78%]"></div>
+                  <div className="w-[15%] bg-primary rounded-t-md h-[100%] shadow-[0_0_8px_rgba(0,53,39,0.3)]"></div>
+                </>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-on-surface-variant/40 font-semibold text-[11px]">
+                  Data tidak tersedia
+                </div>
+              )}
               <div className="absolute bottom-1 left-0 right-0 flex justify-between px-4 text-[9px] font-bold text-on-surface-variant/60 font-mono opacity-80">
                 <span>Jan</span>
                 <span>Feb</span>
@@ -314,21 +385,28 @@ export default function StudentPortalView({
 
             {/* Info & Action */}
             <div className="w-full md:w-1/2 space-y-4">
-              <div className="bg-secondary-fixed/10 p-3.5 rounded-lg border border-secondary-fixed/30 text-left">
-                <p className="font-sans text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 leading-none">
-                  Hafalan Terakhir (Setoran)
-                </p>
-                <p className="font-display text-md font-bold text-primary">
-                  {latestRecord ? latestRecord.surah : 'Surah Al-Kahfi'}
-                </p>
-                <p className="font-sans text-xs text-on-surface-variant mt-0.5">
-                  Ayat {latestRecord ? `${latestRecord.startAyat} - ${latestRecord.endAyat}` : '1 - 50'}
-                  <span className="text-[10px] ml-2 text-outline">| Tgl: {latestRecord ? latestRecord.date : '12 Nov 2023'}</span>
-                </p>
-              </div>
+              {latestRecord ? (
+                <div className="bg-secondary-fixed/10 p-3.5 rounded-lg border border-secondary-fixed/30 text-left">
+                  <p className="font-sans text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 leading-none">
+                    Hafalan Terakhir (Setoran)
+                  </p>
+                  <p className="font-display text-md font-bold text-primary">
+                    {latestRecord.surah}
+                  </p>
+                  <p className="font-sans text-xs text-on-surface-variant mt-0.5">
+                    Ayat {latestRecord.startAyat} - {latestRecord.endAyat}
+                    <span className="text-[10px] ml-2 text-outline">| Tgl: {latestRecord.date}</span>
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-surface p-4 rounded-lg border border-dashed border-outline-variant/55 text-center text-on-surface-variant/60">
+                  Belum ada data setoran hafalan.
+                </div>
+              )}
               <button
                 onClick={() => setCertModalOpen(true)}
-                className="w-full bg-primary text-on-primary py-2.5 rounded-lg font-sans text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                disabled={!hasHafalan}
+                className="w-full bg-primary text-on-primary py-2.5 rounded-lg font-sans text-xs font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-outlined text-[16px]">workspace_premium</span>
                 <span>Lihat Sertifikat Tahfidz</span>
@@ -383,84 +461,95 @@ export default function StudentPortalView({
                 <thead>
                   <tr className="bg-surface-container-low text-on-surface-variant font-sans text-[10px] font-bold uppercase tracking-wider">
                     <th className="p-3 border-b border-outline-variant/50 font-bold">Mata Pelajaran</th>
-                    <th className="p-3 border-b border-outline-variant/50 font-bold text-center">Nilai Harian</th>
+                    <th className="p-3 border-b border-outline-variant/50 font-bold text-center">Tugas</th>
                     <th className="p-3 border-b border-outline-variant/50 font-bold text-center">UTS</th>
-                    <th className="p-3 border-b border-outline-variant/50 font-bold text-center">Kehadiran</th>
+                    <th className="p-3 border-b border-outline-variant/50 font-bold text-center">UAS</th>
+                    <th className="p-3 border-b border-outline-variant/50 font-bold text-center">Nilai Akhir</th>
+                    <th className="p-3 border-b border-outline-variant/50 font-bold text-center">Grade</th>
                   </tr>
                 </thead>
                 <tbody className="text-xs font-sans">
-                  <tr className="border-b border-outline-variant/20 hover:bg-surface-container-low/30 transition-colors bg-white">
-                    <td className="p-3 font-semibold text-on-surface">Aqidah Akhlaq</td>
-                    <td className="p-3 text-center font-mono font-bold">90</td>
-                    <td className="p-3 text-center font-mono font-bold">88</td>
-                    <td className="p-3 text-center">
-                      <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed text-[10px] font-bold">
-                        100%
-                      </span>
-                    </td>
-                  </tr>
-                  <tr className="border-b border-outline-variant/20 hover:bg-surface-container-low/30 transition-colors bg-surface-bright">
-                    <td className="p-3 font-semibold text-on-surface">Fiqih</td>
-                    <td className="p-3 text-center font-mono font-bold">85</td>
-                    <td className="p-3 text-center font-mono font-bold">92</td>
-                    <td className="p-3 text-center">
-                      <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed text-[10px] font-bold">
-                        95%
-                      </span>
-                    </td>
-                  </tr>
-                  <tr className="border-b border-outline-variant/20 hover:bg-surface-container-low/30 transition-colors bg-white">
-                    <td className="p-3 font-semibold text-on-surface">Bahasa Arab</td>
-                    <td className="p-3 text-center font-mono font-bold">95</td>
-                    <td className="p-3 text-center font-mono font-bold">94</td>
-                    <td className="p-3 text-center">
-                      <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed text-[10px] font-bold">
-                        100%
-                      </span>
-                    </td>
-                  </tr>
+                  {studentGrades.length > 0 ? (
+                    studentGrades.map((g) => (
+                      <tr key={g.id} className="border-b border-outline-variant/20 hover:bg-surface-container-low/30 transition-colors bg-white">
+                        <td className="p-3 font-semibold text-on-surface">{g.subjectName}</td>
+                        <td className="p-3 text-center font-mono font-bold">{g.assignmentScore}</td>
+                        <td className="p-3 text-center font-mono font-bold">{g.utsScore}</td>
+                        <td className="p-3 text-center font-mono font-bold">{g.uasScore}</td>
+                        <td className="p-3 text-center font-mono font-bold text-primary">{g.finalScore.toFixed(1)}</td>
+                        <td className="p-3 text-center">
+                          <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                            g.grade === 'A' ? 'bg-emerald-100 text-emerald-800' :
+                            g.grade === 'B' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {g.grade}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-on-surface-variant/60 font-medium">
+                        Belum ada data nilai akademik.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             )}
 
             {activeTab === 'violations' && (
               <div className="space-y-3 p-1">
-                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex items-start gap-3">
-                  <span className="material-symbols-outlined text-emerald-600 mt-0.5 text-[20px]">emoji_events</span>
-                  <div>
-                    <h4 className="font-semibold text-emerald-900 text-xs">Penghargaan Akhlaq Terpuji</h4>
-                    <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
-                      Aktif membantu menyiapkan masjid sebelum halaqah subuh dan menyusun sajadah rapi.
-                    </p>
-                    <span className="text-[9px] text-emerald-600 font-bold block mt-1 uppercase">12 Mei 2026</span>
+                {studentPoints.length > 0 ? (
+                  studentPoints.map((p) => (
+                    <div key={p.id} className={`p-3 rounded-lg flex items-start gap-3 border ${
+                      p.type === 'Prestasi' 
+                        ? 'bg-emerald-50 border-emerald-100 text-emerald-900' 
+                        : 'bg-orange-50 border-orange-100 text-orange-900'
+                    }`}>
+                      <span className={`material-symbols-outlined mt-0.5 text-[20px] ${
+                        p.type === 'Prestasi' ? 'text-emerald-600' : 'text-orange-600'
+                      }`}>
+                        {p.type === 'Prestasi' ? 'emoji_events' : 'warning'}
+                      </span>
+                      <div>
+                        <h4 className="font-semibold text-xs">{p.categoryName} ({p.points > 0 ? `+${p.points}` : p.points} Poin)</h4>
+                        <p className={`text-[11px] mt-0.5 leading-relaxed ${
+                          p.type === 'Prestasi' ? 'text-emerald-800' : 'text-orange-800'
+                        }`}>{p.notes || '-'}</p>
+                        <span className={`text-[9px] font-bold block mt-1 uppercase ${
+                          p.type === 'Prestasi' ? 'text-emerald-600' : 'text-orange-600'
+                        }`}>{p.date} | Oleh: {p.teacherName}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-on-surface-variant/60 font-medium">
+                    Belum ada data prestasi atau pelanggaran.
                   </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-orange-50 border border-orange-100 flex items-start gap-3">
-                  <span className="material-symbols-outlined text-orange-600 mt-0.5 text-[20px]">warning</span>
-                  <div>
-                    <h4 className="font-semibold text-orange-900 text-xs">Teguran Ringan: Keterlambatan</h4>
-                    <p className="text-[11px] text-orange-800 mt-0.5 leading-relaxed">
-                      Terlambat masuk kelas diniyah pagi selama 10 menit tanpa alasan yang mendesak.
-                    </p>
-                    <span className="text-[9px] text-orange-600 font-bold block mt-1 uppercase">24 April 2026</span>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
             {activeTab === 'notes' && (
               <div className="space-y-3 p-1">
-                <div className="p-4 rounded-lg bg-surface-container-low border-l-4 border-primary">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="material-symbols-outlined text-primary text-[18px]">record_voice_over</span>
-                    <span className="font-bold text-primary text-xs">Evaluasi Bulanan Ust. Ahmad Baihaqi:</span>
+                {studentGrades.filter(g => g.notes).length > 0 ? (
+                  studentGrades.filter(g => g.notes).map((g) => (
+                    <div key={g.id} className="p-4 rounded-lg bg-surface-container-low border-l-4 border-primary">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="material-symbols-outlined text-primary text-[18px]">record_voice_over</span>
+                        <span className="font-bold text-primary text-xs">Evaluasi Mapel {g.subjectName}:</span>
+                      </div>
+                      <p className="text-xs text-on-surface-variant leading-relaxed italic">
+                        &quot;{g.notes}&quot;
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-on-surface-variant/60 font-medium">
+                    Belum ada catatan dari ustadz.
                   </div>
-                  <p className="text-xs text-on-surface-variant leading-relaxed italic">
-                    &quot;Masya Allah, hafalan santri {student.name} berkembang dengan sangat baik dan tertib. Pengulangan hafalan (Murajaah) di luar jam wajib sangat konsisten. Hanya saja perlu sedikit dipoles pada bagian waqaf dan ibtida agar tidak terengah-engah pada ayat-ayat panjang. Istiqomah selalu nak.&quot;
-                  </p>
-                  <span className="text-[10px] text-outline mt-2 block font-medium">Diinput pada: 30 Juni 2026</span>
-                </div>
+                )}
               </div>
             )}
           </div>

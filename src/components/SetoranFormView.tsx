@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, MemorizationRecord, AppView } from '../types';
+import { Student, MemorizationRecord, AppView, Teacher } from '../types';
 import { SURAHS, USTADZ_LIST } from '../data';
 
 const JUZ_SURAHS: Record<number, string[]> = {
@@ -42,6 +42,7 @@ const JUZ_SURAHS: Record<number, string[]> = {
 
 interface SetoranFormViewProps {
   students: Student[];
+  teachers: Teacher[];
   classes?: string[];
   onAddRecord: (record: MemorizationRecord) => void;
   onUpdateStudentStats: (studentId: string, juzCount: number, detail: string, score: number) => void;
@@ -50,6 +51,7 @@ interface SetoranFormViewProps {
 
 export default function SetoranFormView({
   students,
+  teachers = [],
   onAddRecord,
   onUpdateStudentStats,
   setView,
@@ -57,8 +59,8 @@ export default function SetoranFormView({
   // Form State
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
-  const [ustadz, setUstadz] = useState(USTADZ_LIST[0]);
-  const [setoranType, setSetoranType] = useState<string>('Ziyadah');
+  const [ustadz, setUstadz] = useState('');
+  const [setoranType, setSetoranType] = useState<string>('');
   const [juz, setJuz] = useState<number | ''>('');
   const [surah, setSurah] = useState('');
   const [startAyat, setStartAyat] = useState<number | ''>('');
@@ -126,6 +128,16 @@ export default function SetoranFormView({
     e.preventDefault();
     if (!selectedStudentId) {
       alert('Pilih santri terlebih dahulu.');
+      return;
+    }
+
+    if (!ustadz) {
+      alert('Harap pilih Ustadz Penguji terlebih dahulu.');
+      return;
+    }
+
+    if (!setoranType) {
+      alert('Harap pilih Jenis Setoran terlebih dahulu.');
       return;
     }
 
@@ -303,27 +315,31 @@ export default function SetoranFormView({
                 </div>
 
                 <div>
-                  <label className="block text-on-surface-variant font-semibold mb-1 uppercase text-[10px] tracking-wider">Ustadz Penguji</label>
+                  <label className="block text-on-surface-variant font-semibold mb-1 uppercase text-[10px] tracking-wider">Ustadz Penguji *</label>
                   <select
+                    required
                     value={ustadz}
                     onChange={(e) => setUstadz(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-outline-variant/80 rounded-md text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
+                    className="w-full px-3 py-1.5 border border-outline-variant/80 rounded-md text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer bg-white text-on-surface font-medium"
                   >
-                    {USTADZ_LIST.map((u) => (
-                      <option key={u} value={u}>
-                        {u}
+                    <option value="">-- Pilih Ustadz Penguji --</option>
+                    {(teachers || []).map((t) => (
+                      <option key={t.id} value={t.name}>
+                        {t.name}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-on-surface-variant font-semibold mb-1 uppercase text-[10px] tracking-wider">Jenis Setoran</label>
+                  <label className="block text-on-surface-variant font-semibold mb-1 uppercase text-[10px] tracking-wider">Jenis Setoran *</label>
                   <select
+                    required
                     value={setoranType}
-                    onChange={(e) => setSetoranType(e.target.value as any)}
-                    className="w-full px-3 py-1.5 border border-outline-variant/80 rounded-md text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
+                    onChange={(e) => setSetoranType(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-outline-variant/80 rounded-md text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer bg-white text-on-surface font-medium"
                   >
+                    <option value="">-- Pilih Jenis Setoran --</option>
                     <option value="Ziyadah">Ziyadah</option>
                     <option value="Murojaah">Murojaah</option>
                     <option value="Perbaikan">Perbaikan</option>

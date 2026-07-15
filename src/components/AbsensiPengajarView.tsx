@@ -13,14 +13,14 @@ interface AbsensiPengajarViewProps {
 }
 
 const JAM_PELAJARAN_LIST = [
-  'Qabla Subuh (03.50-05.20)',
-  'Bada Subuh (05.00-06.00)',
-  'Pagi (08.00-09.00)',
-  'Pagi (09.00-10.00)',
-  'Siang (14.00-15.00)',
-  'Sore (16.00-17.00)',
-  'Bada Maghrib (18.30-19.30)',
-  'Bada Isya (20.00-21.00)'
+  'Qabla Subuh 03.50-04.20',
+  "Ba'da Subuh 05.00-06.00",
+  'Pagi 08.00-09.00',
+  'Pagi 09.00-10.00',
+  'Siang 14.00-15.00',
+  'Sore 16.00-17.00',
+  "Ba'da Maghrib 18.30-19.30",
+  "Ba'da Isya 20.00-21.00"
 ];
 
 export default function AbsensiPengajarView({
@@ -279,6 +279,7 @@ export default function AbsensiPengajarView({
   const [studentAttendanceStatus, setStudentAttendanceStatus] = useState<'Hadir' | 'Izin' | 'Sakit' | 'Alpa' | ''>('');
   const [studentAttendanceNotes, setStudentAttendanceNotes] = useState('');
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [studentSelectedJam, setStudentSelectedJam] = useState('');
 
   // List of active students in the selected class
   const classStudents = students.filter(
@@ -318,6 +319,10 @@ export default function AbsensiPengajarView({
       alert('Mohon pilih santri terlebih dahulu!');
       return;
     }
+    if (!studentSelectedJam) {
+      alert('Mohon pilih jam pelajaran terlebih dahulu!');
+      return;
+    }
     if (!studentAttendanceStatus) {
       alert('Mohon pilih status kehadiran terlebih dahulu!');
       return;
@@ -334,6 +339,7 @@ export default function AbsensiPengajarView({
       date: selectedDate,
       status: studentAttendanceStatus as any,
       notes: studentAttendanceNotes,
+      lessonHour: studentSelectedJam,
     };
 
     // Filter out previous attendance for this student on this date
@@ -343,7 +349,36 @@ export default function AbsensiPengajarView({
 
     onUpdateStudentAttendance([...updated, newRecord]);
     setStudentAttendanceNotes('');
-    alert(`Sukses! Kehadiran ${selectedStud.name} berhasil direkam sebagai [${studentAttendanceStatus}].`);
+    alert(`Sukses! Kehadiran ${selectedStud.name} berhasil direkam sebagai [${studentAttendanceStatus}] pada [${studentSelectedJam}].`);
+  };
+
+  // Inline update student lesson hour in table
+  const handleStudentJamChange = (studentId: string, lessonHour: string) => {
+    const existing = studentAttendance.find((sa) => sa.studentId === studentId && sa.date === selectedDate);
+    const stud = classStudents.find((s) => s.id === studentId);
+    if (!stud) return;
+
+    if (existing) {
+      const updated = studentAttendance.map((sa) => {
+        if (sa.id === existing.id) {
+          return { ...sa, lessonHour };
+        }
+        return sa;
+      });
+      onUpdateStudentAttendance(updated);
+    } else {
+      const newRecord: StudentAttendance = {
+        id: `sa_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        studentId,
+        studentName: stud.name,
+        class: studentSelectedClass,
+        date: selectedDate,
+        status: 'Hadir',
+        notes: '',
+        lessonHour,
+      };
+      onUpdateStudentAttendance([...studentAttendance, newRecord]);
+    }
   };
 
   // Inline update student status in table
@@ -656,7 +691,7 @@ export default function AbsensiPengajarView({
                         <option value="" disabled className="bg-primary text-white/50">-- Pilih Jam Ke --</option>
                         {JAM_PELAJARAN_LIST.map((jam) => (
                           <option key={jam} value={jam} className="bg-primary text-white font-medium">
-                            {jam.split(' ')[0]}
+                            {jam}
                           </option>
                         ))}
                       </select>
@@ -780,7 +815,7 @@ export default function AbsensiPengajarView({
                             </td>
                             <td className="p-3 text-center">
                               <span className="font-semibold block">{record.class || '-'}</span>
-                              <span className="text-[10px] text-on-surface-variant mt-0.5 block">{record.lessonHour?.split(' ')[0] || '-'}</span>
+                              <span className="text-[10px] text-on-surface-variant mt-0.5 block">{record.lessonHour || '-'}</span>
                             </td>
 
                             {/* Status Dropdown Select */}
@@ -951,6 +986,22 @@ export default function AbsensiPengajarView({
                   </div>
 
                   <div>
+                    <label className="block text-white font-semibold mb-1">Jam Pelajaran *</label>
+                    <select
+                      value={studentSelectedJam}
+                      onChange={(e) => setStudentSelectedJam(e.target.value)}
+                      className="w-full bg-white/10 border border-white/15 rounded-lg px-3 py-1.5 text-white text-xs font-semibold outline-none focus:ring-1 focus:ring-secondary-fixed bg-primary text-white font-medium"
+                    >
+                      <option value="" disabled className="bg-primary text-white/50">-- Pilih Jam Pelajaran --</option>
+                      {JAM_PELAJARAN_LIST.map((jam) => (
+                        <option key={jam} value={jam} className="bg-primary text-white font-medium">
+                          {jam}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
                     <label className="block text-white font-semibold mb-1">Status Kehadiran</label>
                     <div className="grid grid-cols-4 gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
                       {(['Hadir', 'Izin', 'Sakit', 'Alpa'] as const).map((st) => (
@@ -1020,6 +1071,7 @@ export default function AbsensiPengajarView({
                         <th className="p-3 pl-4">No</th>
                         <th className="p-3">Nama Santri</th>
                         <th className="p-3 text-center">NISN / ID</th>
+                        <th className="p-3">Jam Pelajaran</th>
                         <th className="p-3">Status Kehadiran</th>
                         <th className="p-3">Keterangan</th>
                         <th className="p-3 pr-4 text-center">Aksi</th>
@@ -1038,6 +1090,20 @@ export default function AbsensiPengajarView({
                                 <td className="p-3 pl-4 font-mono text-on-surface-variant">{index + 1}</td>
                                 <td className="p-3 font-bold">{stud.name}</td>
                                 <td className="p-3 text-center font-mono">{stud.nisn || stud.nip || '-'}</td>
+                                <td className="p-3">
+                                  <select
+                                    value={record ? record.lessonHour || '' : ''}
+                                    onChange={(e) => handleStudentJamChange(stud.id, e.target.value)}
+                                    className="px-2.5 py-1.5 border border-outline-variant/60 rounded-lg text-[11px] font-medium outline-none cursor-pointer bg-white text-on-surface max-w-[150px] truncate"
+                                  >
+                                    <option value="" disabled className="text-slate-400">Belum diisi</option>
+                                    {JAM_PELAJARAN_LIST.map((jam) => (
+                                      <option key={jam} value={jam}>
+                                        {jam}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
                                 <td className="p-3">
                                   <select
                                     value={currentStatus}

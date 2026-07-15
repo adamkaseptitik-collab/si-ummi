@@ -30,7 +30,7 @@ export default function Sidebar({
     { view: 'catatan_poin' as AppView, label: 'Catatan Poin', icon: 'stars' },
     { view: 'akademik' as AppView, label: 'Akademik', icon: 'school' },
     { view: 'penilaian_ujian' as AppView, label: 'Penilaian Ujian', icon: 'rule' },
-    { view: 'absensi_pengajar' as AppView, label: 'Absensi Pengajar', icon: 'how_to_reg' },
+    { view: 'absensi_pengajar' as AppView, label: 'Absensi', icon: 'how_to_reg' },
     { view: 'laporan' as AppView, label: 'Laporan', icon: 'description' },
     { view: 'laporan_pengajar' as AppView, label: 'Laporan Pengajar', icon: 'assignment' },
     { view: 'data_pengajar' as AppView, label: 'Data Pengajar', icon: 'badge' },

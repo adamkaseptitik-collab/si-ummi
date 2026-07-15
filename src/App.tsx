@@ -639,7 +639,7 @@ export default function App() {
       case 'pengaturan':
         return 'Pengaturan';
       case 'absensi_pengajar':
-        return 'Absensi Pengajar';
+        return 'Absensi';
       case 'laporan_pengajar':
         return 'Jurnal & Laporan Mengajar';
       case 'laporan_pencapaian':
@@ -799,6 +799,7 @@ export default function App() {
           {currentView === 'tahfidz_input' && (
             <SetoranFormView
               students={students}
+              teachers={teachers}
               classes={classes}
               onAddRecord={handleAddRecord}
               onUpdateStudentStats={handleUpdateStudentStats}
@@ -810,6 +811,10 @@ export default function App() {
             <StudentPortalView
               student={getActiveStudent()}
               allStudents={students}
+              records={records}
+              pointRecords={pointRecords}
+              grades={grades}
+              studentAttendance={studentAttendance}
               onSelectStudent={setSelectedStudentId}
               setView={setView}
               userRole={userRole}

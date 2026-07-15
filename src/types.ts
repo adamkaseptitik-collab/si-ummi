@@ -190,6 +190,7 @@ export interface StudentAttendance {
   date: string;
   status: 'Hadir' | 'Izin' | 'Sakit' | 'Alpa';
   notes?: string;
+  lessonHour?: string;
 }
 
 
