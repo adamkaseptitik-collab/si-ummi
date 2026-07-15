@@ -80,13 +80,22 @@ export default function CatatanPoinView({
         return;
       }
 
-      const newCats: PointCategory[] = [];
-      
-      for (let i = 1; i < lines.length; i++) {
+      let startIdx = 0;
+      // Skip Excel separator if present
+      if (lines[0].toLowerCase().startsWith('sep=')) {
+        startIdx = 1;
+      }
+
+      if (lines.length <= startIdx + 1) {
+        setImportError('Data tidak memiliki baris konten.');
+        return;
+      }
+
+      // Helper to parse single CSV line supporting quotes and escaped quotes
+      const parseCSVLine = (line: string): string[] => {
         const cols: string[] = [];
         let cur = '';
         let insideQuote = false;
-        const line = lines[i];
         for (let j = 0; j < line.length; j++) {
           const char = line[j];
           if (char === '"') {
@@ -99,26 +108,65 @@ export default function CatatanPoinView({
           }
         }
         cols.push(cur.trim());
+        return cols.map(c => c.replace(/^"|"$/g, '').replace(/""/g, '"'));
+      };
 
-        if (cols.length < 3) continue;
+      const headerLine = lines[startIdx];
+      const headerCols = parseCSVLine(headerLine);
 
-        const typeRaw = cols[0].replace(/^"|"$/g, '');
-        const nameVal = cols[1].replace(/^"|"$/g, '');
-        const pointsRaw = cols[2].replace(/^"|"$/g, '');
+      let typeIdx = -1;
+      let nameIdx = -1;
+      let pointsIdx = -1;
 
-        const type: 'Pelanggaran' | 'Prestasi' = (typeRaw.toLowerCase() === 'prestasi' || typeRaw.toLowerCase() === 'skor plus' || typeRaw.toLowerCase() === 'bonus') 
+      headerCols.forEach((col, idx) => {
+        const lowerCol = col.toLowerCase();
+        if (lowerCol.includes('tipe') || lowerCol.includes('type')) {
+          typeIdx = idx;
+        } else if (lowerCol.includes('nama') || lowerCol.includes('sub') || lowerCol.includes('kategori')) {
+          nameIdx = idx;
+        } else if (lowerCol.includes('bobot') || lowerCol.includes('poin') || lowerCol.includes('points') || lowerCol.includes('skor') || lowerCol.includes('score')) {
+          pointsIdx = idx;
+        }
+      });
+
+      // Fallback indices if header names couldn't be auto-detected
+      if (typeIdx === -1 || nameIdx === -1 || pointsIdx === -1) {
+        if (headerCols.length >= 4) {
+          typeIdx = 1;
+          nameIdx = 2;
+          pointsIdx = 3;
+        } else {
+          typeIdx = 0;
+          nameIdx = 1;
+          pointsIdx = 2;
+        }
+      }
+
+      const newCats: PointCategory[] = [];
+      
+      for (let i = startIdx + 1; i < lines.length; i++) {
+        const cols = parseCSVLine(lines[i]);
+        if (cols.length <= Math.max(typeIdx, nameIdx, pointsIdx)) continue;
+
+        const typeRaw = cols[typeIdx];
+        const nameVal = cols[nameIdx];
+        const pointsRaw = cols[pointsIdx];
+
+        if (!nameVal) continue;
+
+        const type: 'Pelanggaran' | 'Prestasi' = (typeRaw.toLowerCase() === 'prestasi' || typeRaw.toLowerCase() === 'skor plus' || typeRaw.toLowerCase() === 'bonus' || typeRaw.toLowerCase() === 'reward') 
           ? 'Prestasi' 
           : 'Pelanggaran';
-        const name = nameVal;
-        const points = parseInt(pointsRaw, 10);
+        
+        const pointsClean = pointsRaw.replace(/^\+/, '');
+        const points = parseInt(pointsClean, 10);
 
-        if (!name) continue;
         if (isNaN(points)) continue;
 
         newCats.push({
           id: 'cat_' + Math.random().toString(36).substr(2, 9),
           type,
-          name,
+          name: nameVal,
           points
         });
       }
@@ -787,9 +835,9 @@ export default function CatatanPoinView({
               <div className="p-4 bg-surface-container-low border-b border-outline-variant/60 animate-fade-in text-xs space-y-3">
                 <div className="font-bold text-primary">Formulir Import Kategori Poin</div>
                 <p className="text-on-surface-variant text-[11px] leading-relaxed">
-                  Pilih file CSV dengan baris pertama sebagai header. Struktur kolom yang wajib adalah: <br />
-                  <code className="bg-white px-1 py-0.5 border rounded font-mono text-[10px]">Tipe, Nama Sub Kategori, Bobot Poin</code><br />
-                  Contoh isi baris: <code className="bg-white px-1 py-0.5 border rounded font-mono text-[10px]">Pelanggaran, "Tidak Salat Berjamaah", -15</code>
+                  Pilih file CSV dengan baris pertama sebagai header. Anda dapat langsung mengunggah file hasil export sebelumnya, atau menggunakan format kolom berikut: <br />
+                  <code className="bg-white px-1 py-0.5 border rounded font-mono text-[10px]">No, Tipe, Nama Sub Kategori, Bobot Poin</code> atau <code className="bg-white px-1 py-0.5 border rounded font-mono text-[10px]">Tipe, Nama Sub Kategori, Bobot Poin</code><br />
+                  Contoh isi baris: <code className="bg-white px-1 py-0.5 border rounded font-mono text-[10px]">1, Pelanggaran, "Tidak Salat Berjamaah", -15</code>
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -811,7 +859,7 @@ export default function CatatanPoinView({
                     rows={4}
                     value={pasteData}
                     onChange={(e) => setPasteData(e.target.value)}
-                    placeholder="Tipe, Nama Sub Kategori, Bobot Poin&#10;Pelanggaran, Terlambat Masuk Kelas, -10&#10;Prestasi, Membantu Guru, 15"
+                    placeholder="No, Tipe, Nama Sub Kategori, Bobot Poin&#10;1, Pelanggaran, Terlambat Masuk Kelas, -10&#10;2, Prestasi, Membantu Guru, +15"
                     className="w-full p-2.5 bg-white border border-outline-variant/80 rounded-md font-mono text-[11px] outline-none focus:ring-1 focus:ring-primary focus:border-primary"
                   />
                   {pasteData && (
