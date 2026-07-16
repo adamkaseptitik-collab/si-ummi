@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Student, TeacherAttendance, StudentAttendance, PointRecord, MemorizationRecord, UserAccount, UserLog, Teacher } from '../types';
+import { Student, TeacherAttendance, StudentAttendance, PointRecord, MemorizationRecord, UserAccount, UserLog, Teacher, AnnouncementItem } from '../types';
 
 const ALL_MENU_VIEWS = [
   { view: 'dashboard', label: 'Dashboard' },
@@ -2538,6 +2538,51 @@ export function PengaturanView({
   // Check if current user is super admin
   const isSuperAdmin = currentUser?.role === 'super_admin';
 
+  // Settings sub tabs for super admin
+  const [settingsTab, setSettingsTab] = useState<'profile_accounts' | 'portal_management'>('profile_accounts');
+
+  const [portalSettings, setPortalSettings] = useState(() => {
+    const cached = localStorage.getItem('siakad_portal_settings');
+    return cached ? JSON.parse(cached) : {
+      institutionName: "YAYASAN PONDOK PESANTREN UMMI",
+      subTitle: "MADRASAH ALIYAH & TAHFIDZ AL-QUR'AN UMMI",
+      nsm: "121235060002",
+      npsn: "20214812",
+      address: "Jl. Pesantren No. 01, Kel. Watubelah, Kec. Sumber, Kuningan, Jawa Barat 45611",
+      email: "info@alfathanah.sch.id",
+      phone: "(0231) 8849021",
+      welcomeMsg: "Selamat datang. Anda dapat melihat Laporan Perkembangan Akademik Santri atau Profil Pondok Pesantren di bawah ini.",
+      vision: "Terwujudnya Generasi Qur'ani, Berakhlakul Karimah, Unggul dalam IPTEK, dan Kokoh dalam IMTAK.",
+      mission: [
+        "Menyelenggarakan pendidikan formal dan informal diniyah yang berorientasi pada tahfidzul Qur'an secara profesional.",
+        "Membina akhlakul karimah melalui teladan kiai dan pembiasaan disiplin kehidupan santri di pondok pesantren.",
+        "Meningkatkan penguasaan ilmu pengetahuan, bahasa Arab, dan teknologi terapan bagi santri masa kini.",
+        "Mengembangkan potensi bakat dan minat kepemimpinan santri secara integral dan berkelanjutan."
+      ],
+      kepalaMadrasah: "KH. Abdullah, M.Pd.I",
+      ustadzTahfidz: "Ust. Ahmad Baihaqi"
+    };
+  });
+
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(() => {
+    const cached = localStorage.getItem('siakad_portal_announcements');
+    const defaultAnnouncements = [
+      {
+        id: 'an1',
+        title: 'Pembayaran SPP Semester Genap',
+        content: 'Batas akhir pembayaran SPP semester genap adalah tanggal 25 bulan ini. Mohon segera diselesaikan untuk kelancaran administrasi.',
+        date: '2 Hari yang lalu'
+      },
+      {
+        id: 'an2',
+        title: 'Jadwal Pengambilan Raport',
+        content: 'Pengambilan raport sisipan akan dilaksanakan pada hari Jumat secara bergiliran untuk menghindari antrean panjang.',
+        date: '1 Minggu yang lalu'
+      }
+    ];
+    return cached ? JSON.parse(cached) : defaultAnnouncements;
+  });
+
   // State for dark mode / light mode
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('siakad_dark_mode') === 'true');
 
@@ -2551,6 +2596,131 @@ export function PengaturanView({
       { id: 'log_4', timestamp: new Date(Date.now() - 18000000).toLocaleString('id-ID'), username: 'wali_fathanah', fullName: 'Wali Ahmad Fathanah', role: 'wali_santri', action: 'Melihat Laporan Perkembangan Santri' },
     ];
   });
+
+  // Portal form states
+  const [psName, setPsName] = useState(portalSettings.institutionName);
+  const [psSubtitle, setPsSubtitle] = useState(portalSettings.subTitle || "MADRASAH ALIYAH & TAHFIDZ AL-QUR'AN UMMI");
+  const [psNsm, setPsNsm] = useState(portalSettings.nsm);
+  const [psNpsn, setPsNpsn] = useState(portalSettings.npsn);
+  const [psAddress, setPsAddress] = useState(portalSettings.address);
+  const [psEmail, setPsEmail] = useState(portalSettings.email);
+  const [psPhone, setPsPhone] = useState(portalSettings.phone);
+  const [psWelcome, setPsWelcome] = useState(portalSettings.welcomeMsg);
+  const [psVision, setPsVision] = useState(portalSettings.vision);
+  const [psMissionText, setPsMissionText] = useState(
+    Array.isArray(portalSettings.mission) 
+      ? portalSettings.mission.join('\n') 
+      : portalSettings.mission
+  );
+  const [psKepalaMadrasah, setPsKepalaMadrasah] = useState(portalSettings.kepalaMadrasah || "KH. Abdullah, M.Pd.I");
+  const [psUstadzTahfidz, setPsUstadzTahfidz] = useState(portalSettings.ustadzTahfidz || "Ust. Ahmad Baihaqi");
+
+  // Sync state if localStorage changes or other tabs update it
+  useEffect(() => {
+    setPsName(portalSettings.institutionName);
+    setPsSubtitle(portalSettings.subTitle || "MADRASAH ALIYAH & TAHFIDZ AL-QUR'AN UMMI");
+    setPsNsm(portalSettings.nsm);
+    setPsNpsn(portalSettings.npsn);
+    setPsAddress(portalSettings.address);
+    setPsEmail(portalSettings.email);
+    setPsPhone(portalSettings.phone);
+    setPsWelcome(portalSettings.welcomeMsg);
+    setPsVision(portalSettings.vision);
+    setPsMissionText(
+      Array.isArray(portalSettings.mission) 
+        ? portalSettings.mission.join('\n') 
+        : portalSettings.mission
+    );
+    setPsKepalaMadrasah(portalSettings.kepalaMadrasah || "KH. Abdullah, M.Pd.I");
+    setPsUstadzTahfidz(portalSettings.ustadzTahfidz || "Ust. Ahmad Baihaqi");
+  }, [portalSettings]);
+
+  // Announcement state & handlers
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
+  const [annTitle, setAnnTitle] = useState('');
+  const [annContent, setAnnContent] = useState('');
+  const [annDate, setAnnDate] = useState('');
+
+  const handleSavePortalSettings = () => {
+    const updatedSettings = {
+      institutionName: psName,
+      subTitle: psSubtitle,
+      nsm: psNsm,
+      npsn: psNpsn,
+      address: psAddress,
+      email: psEmail,
+      phone: psPhone,
+      welcomeMsg: psWelcome,
+      vision: psVision,
+      mission: psMissionText.split('\n').filter((m: string) => m.trim() !== ''),
+      kepalaMadrasah: psKepalaMadrasah,
+      ustadzTahfidz: psUstadzTahfidz
+    };
+    setPortalSettings(updatedSettings);
+    localStorage.setItem('siakad_portal_settings', JSON.stringify(updatedSettings));
+    alert('Konfigurasi Portal Wali Santri berhasil disimpan!');
+    
+    // Log the action
+    const log: UserLog = {
+      id: `log_${Date.now()}`,
+      timestamp: new Date().toLocaleString('id-ID'),
+      username: currentUser?.username || 'system',
+      fullName: currentUser?.fullName || 'Sistem',
+      role: currentUser?.role || 'super_admin',
+      action: `Memperbarui Konfigurasi Portal Wali Santri`,
+    };
+    const updatedLogs = [log, ...userLogs];
+    setUserLogs(updatedLogs);
+    localStorage.setItem('siakad_user_logs', JSON.stringify(updatedLogs));
+  };
+
+  const handleSaveAnnouncement = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!annTitle.trim() || !annContent.trim()) return;
+
+    let updated: AnnouncementItem[];
+    if (editingAnnouncementId) {
+      updated = announcements.map(an => an.id === editingAnnouncementId ? {
+        ...an,
+        title: annTitle,
+        content: annContent,
+        date: annDate || 'Hari ini'
+      } : an);
+      alert('Pengumuman berhasil diperbarui!');
+    } else {
+      const newAnn: AnnouncementItem = {
+        id: `an_${Date.now()}`,
+        title: annTitle,
+        content: annContent,
+        date: annDate || 'Baru saja'
+      };
+      updated = [newAnn, ...announcements];
+      alert('Pengumuman baru berhasil ditambahkan!');
+    }
+    
+    setAnnouncements(updated);
+    localStorage.setItem('siakad_portal_announcements', JSON.stringify(updated));
+    setEditingAnnouncementId(null);
+    setAnnTitle('');
+    setAnnContent('');
+    setAnnDate('');
+  };
+
+  const handleDeleteAnnouncement = (id: string) => {
+    if (confirm('Apakah Anda yakin ingin menghapus pengumuman ini?')) {
+      const updated = announcements.filter(an => an.id !== id);
+      setAnnouncements(updated);
+      localStorage.setItem('siakad_portal_announcements', JSON.stringify(updated));
+      alert('Pengumuman berhasil dihapus!');
+    }
+  };
+
+  const startEditAnnouncement = (item: AnnouncementItem) => {
+    setEditingAnnouncementId(item.id);
+    setAnnTitle(item.title);
+    setAnnContent(item.content);
+    setAnnDate(item.date);
+  };
 
   const handleSetDarkMode = (val: boolean) => {
     setIsDarkMode(val);
@@ -2766,52 +2936,120 @@ export function PengaturanView({
 
   return (
     <div className="space-y-section-gap font-sans text-xs text-left animate-fade-in">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-primary">Pengaturan Sistem &amp; Portal</h1>
-        <p className="text-on-surface-variant text-xs mt-1">
-          Sesuaikan profil lembaga madrasah, hak akses portal, dan mode penggunaan tampilan aplikasi.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-primary">Pengaturan Sistem &amp; Portal</h1>
+          <p className="text-on-surface-variant text-xs mt-1">
+            Sesuaikan profil lembaga madrasah, hak akses portal, dan mode penggunaan tampilan aplikasi.
+          </p>
+        </div>
+
+        {isSuperAdmin && (
+          <div className="flex bg-surface-container-high border border-outline-variant/50 p-1 rounded-xl shadow-3xs shrink-0">
+            <button
+              type="button"
+              onClick={() => setSettingsTab('profile_accounts')}
+              className={`py-2 px-4 rounded-lg font-sans text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                settingsTab === 'profile_accounts'
+                  ? 'bg-primary text-on-primary shadow-3xs'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-low'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
+              <span>Profil &amp; Akun Akses</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettingsTab('portal_management')}
+              className={`py-2 px-4 rounded-lg font-sans text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                settingsTab === 'portal_management'
+                  ? 'bg-primary text-on-primary shadow-3xs'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-low'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">web</span>
+              <span>Kelola Portal Wali</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
-        {/* Profile Card & Info */}
-        <div className="lg:col-span-12 bg-white border border-outline-variant/60 rounded-xl p-5 space-y-4 shadow-3xs">
-          <h3 className="font-display text-sm font-bold text-primary border-b border-outline-variant/30 pb-2">
-            Profil Lembaga (Madrasah)
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-on-surface-variant font-semibold mb-1">Nama Madrasah</label>
-              <input type="text" className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium" defaultValue="Madrasah Aliyah Al-Fatih" />
+      {(!isSuperAdmin || settingsTab === 'profile_accounts') && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+          {/* Profile Card & Info */}
+          <div className="lg:col-span-12 bg-white border border-outline-variant/60 rounded-xl p-5 space-y-4 shadow-3xs">
+            <h3 className="font-display text-sm font-bold text-primary border-b border-outline-variant/30 pb-2">
+              Profil Lembaga (Madrasah)
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-on-surface-variant font-semibold mb-1">Nama Madrasah / Lembaga</label>
+                <input
+                  type="text"
+                  value={psName}
+                  onChange={(e) => setPsName(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium"
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">Nomor Statistik Madrasah (NSM)</label>
+                <input
+                  type="text"
+                  value={psNsm}
+                  onChange={(e) => setPsNsm(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">NPSN / Izin Operasional</label>
+                <input
+                  type="text"
+                  value={psNpsn}
+                  onChange={(e) => setPsNpsn(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium font-mono"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-on-surface-variant font-semibold mb-1">Alamat Kampus Pondok</label>
+                <input
+                  type="text"
+                  value={psAddress}
+                  onChange={(e) => setPsAddress(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium"
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">Kepala Madrasah</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium"
+                  value={psKepalaMadrasah}
+                  onChange={(e) => setPsKepalaMadrasah(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">Ustadz Kepala Tahfidz</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium"
+                  value={psUstadzTahfidz}
+                  onChange={(e) => setPsUstadzTahfidz(e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-on-surface-variant font-semibold mb-1">Nomor Statistik Madrasah (NSM)</label>
-              <input type="text" className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium font-mono" defaultValue="121235060002" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-on-surface-variant font-semibold mb-1">Alamat Kampus Pondok</label>
-              <input type="text" className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium" defaultValue="Jl. Pesantren No. 45, Kebon Jeruk, Jakarta Barat, DKI Jakarta" />
-            </div>
-            <div>
-              <label className="block text-on-surface-variant font-semibold mb-1">Kepala Madrasah</label>
-              <input type="text" className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium" defaultValue="KH. Abdullah, M.Pd.I" />
-            </div>
-            <div>
-              <label className="block text-on-surface-variant font-semibold mb-1">Ustadz Kepala Tahfidz</label>
-              <input type="text" className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium" defaultValue="Ust. Ahmad Baihaqi" />
-            </div>
+            <button
+              onClick={handleSavePortalSettings}
+              className="px-4 py-2 bg-primary text-on-primary font-bold rounded-lg hover:bg-primary-container transition-all text-xs shadow-3xs cursor-pointer flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">save</span>
+              <span>Simpan Perubahan Profil</span>
+            </button>
           </div>
-          <button
-            onClick={() => alert('Profil madrasah berhasil diperbarui!')}
-            className="px-4 py-2 bg-primary text-on-primary font-bold rounded-lg hover:bg-primary-container transition-all text-xs shadow-3xs cursor-pointer"
-          >
-            Simpan Perubahan Profil
-          </button>
         </div>
-      </div>
+      )}
 
       {/* USER ACCOUNTS & MANAGEMENT CONTAINER - ONLY FOR SUPER ADMIN */}
-      {isSuperAdmin && (
+      {isSuperAdmin && settingsTab === 'profile_accounts' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter pt-2">
           {/* Create Account Form */}
           <div className="lg:col-span-4 bg-white border border-outline-variant/60 rounded-xl p-5 shadow-3xs text-left flex flex-col justify-between">
@@ -3157,6 +3395,250 @@ export function PengaturanView({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSuperAdmin && settingsTab === 'portal_management' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-gutter animate-fade-in pt-2">
+          {/* Identitas & Detail Tampilan Portal */}
+          <div className="lg:col-span-7 bg-white border border-outline-variant/60 rounded-xl p-5 space-y-4 shadow-3xs text-left">
+            <h3 className="font-display text-sm font-bold text-primary border-b border-outline-variant/30 pb-2 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[18px]">web</span>
+              <span>Konfigurasi &amp; Tampilan Portal Wali</span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-on-surface-variant font-semibold mb-1">Nama Lembaga Utama (Yayasan)</label>
+                <input
+                  type="text"
+                  value={psName}
+                  onChange={(e) => setPsName(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="YAYASAN PONDOK PESANTREN UMMI"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-on-surface-variant font-semibold mb-1">Subtitle / Tingkat Pendidikan</label>
+                <input
+                  type="text"
+                  value={psSubtitle}
+                  onChange={(e) => setPsSubtitle(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="MADRASAH ALIYAH &amp; TAHFIDZ AL-QUR'AN UMMI"
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">Nomor Statistik Madrasah (NSM)</label>
+                <input
+                  type="text"
+                  value={psNsm}
+                  onChange={(e) => setPsNsm(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium font-mono text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="121235060002"
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">NPSN / Izin Operasional</label>
+                <input
+                  type="text"
+                  value={psNpsn}
+                  onChange={(e) => setPsNpsn(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium font-mono text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="20214812"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-on-surface-variant font-semibold mb-1">Alamat Lembaga</label>
+                <input
+                  type="text"
+                  value={psAddress}
+                  onChange={(e) => setPsAddress(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Jl. Pesantren No. 01, Kuningan, Jawa Barat"
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">Email Lembaga</label>
+                <input
+                  type="text"
+                  value={psEmail}
+                  onChange={(e) => setPsEmail(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="info@alfathanah.sch.id"
+                />
+              </div>
+              <div>
+                <label className="block text-on-surface-variant font-semibold mb-1">No. Telpon Lembaga</label>
+                <input
+                  type="text"
+                  value={psPhone}
+                  onChange={(e) => setPsPhone(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="(0231) 8849021"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-on-surface-variant font-semibold mb-1">Pesan Penyambutan Portal</label>
+                <textarea
+                  value={psWelcome}
+                  onChange={(e) => setPsWelcome(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary resize-y"
+                  placeholder="Pesan selamat datang yang muncul di bagian atas portal..."
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-on-surface-variant font-semibold mb-1">Visi Lembaga</label>
+                <textarea
+                  value={psVision}
+                  onChange={(e) => setPsVision(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary italic resize-y"
+                  placeholder="Visi lembaga..."
+                />
+              </div>
+              <div className="col-span-2">
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-on-surface-variant font-semibold">Misi Lembaga (Satu baris untuk setiap poin misi)</label>
+                  <span className="text-[10px] text-outline font-medium">Pisahkan dengan Enter</span>
+                </div>
+                <textarea
+                  value={psMissionText}
+                  onChange={(e) => setPsMissionText(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary resize-y leading-relaxed"
+                  placeholder="Misi 1&#10;Misi 2&#10;Misi 3..."
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleSavePortalSettings}
+              className="px-4 py-2 bg-primary text-on-primary font-bold rounded-lg hover:bg-primary-container transition-all text-xs shadow-3xs cursor-pointer flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">save</span>
+              <span>Simpan Perubahan Portal</span>
+            </button>
+          </div>
+
+          {/* Pengelolaan Pengumuman */}
+          <div className="lg:col-span-5 flex flex-col gap-gutter text-left">
+            {/* Form Tambah/Edit Pengumuman */}
+            <div className="bg-white border border-outline-variant/60 rounded-xl p-5 shadow-3xs">
+              <h3 className="font-display text-sm font-bold text-primary border-b border-outline-variant/30 pb-2 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[18px]">
+                  {editingAnnouncementId ? 'edit_note' : 'campaign'}
+                </span>
+                <span>{editingAnnouncementId ? 'Edit Pengumuman' : 'Tambah Pengumuman Baru'}</span>
+              </h3>
+              
+              <form onSubmit={handleSaveAnnouncement} className="space-y-3 mt-3">
+                <div>
+                  <label className="block text-on-surface-variant font-semibold mb-1">Judul Pengumuman</label>
+                  <input
+                    type="text"
+                    required
+                    value={annTitle}
+                    onChange={(e) => setAnnTitle(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Contoh: Jadwal Pengambilan Raport"
+                  />
+                </div>
+                <div>
+                  <label className="block text-on-surface-variant font-semibold mb-1">Tanggal Tampil / Keterangan Waktu</label>
+                  <input
+                    type="text"
+                    required
+                    value={annDate}
+                    onChange={(e) => setAnnDate(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Contoh: Hari ini, atau 2 Hari yang lalu"
+                  />
+                </div>
+                <div>
+                  <label className="block text-on-surface-variant font-semibold mb-1">Isi Pengumuman</label>
+                  <textarea
+                    required
+                    value={annContent}
+                    onChange={(e) => setAnnContent(e.target.value)}
+                    rows={4}
+                    className="w-full px-3 py-1.5 border border-outline-variant rounded-md font-medium text-xs bg-surface text-on-surface outline-none focus:ring-1 focus:ring-primary resize-none leading-relaxed"
+                    placeholder="Tuliskan detail pengumuman yang akan ditampilkan kepada wali santri..."
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-primary text-on-primary py-2 rounded-lg text-xs font-bold transition-all hover:bg-primary-container cursor-pointer text-center"
+                  >
+                    {editingAnnouncementId ? 'Perbarui' : 'Publikasikan'}
+                  </button>
+                  {editingAnnouncementId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingAnnouncementId(null);
+                        setAnnTitle('');
+                        setAnnContent('');
+                        setAnnDate('');
+                      }}
+                      className="px-4 py-2 border border-outline-variant rounded-lg text-xs font-bold hover:bg-surface-container-low cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* Daftar Pengumuman Aktif */}
+            <div className="bg-white border border-outline-variant/60 rounded-xl p-5 shadow-3xs flex-1 flex flex-col">
+              <h3 className="font-display text-sm font-bold text-primary border-b border-outline-variant/30 pb-2 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[18px]">notifications_active</span>
+                <span>Daftar Pengumuman Aktif</span>
+              </h3>
+
+              <div className="space-y-3 mt-3 overflow-y-auto max-h-[300px] pr-1 flex-1">
+                {announcements.length === 0 ? (
+                  <div className="text-center text-on-surface-variant/60 py-8 font-medium">
+                    Belum ada pengumuman terbit.
+                  </div>
+                ) : (
+                  announcements.map((item) => (
+                    <div key={item.id} className="border border-outline-variant/50 rounded-lg p-3 space-y-1.5 bg-surface-container-lowest/30 hover:border-primary/40 transition-all flex justify-between items-start">
+                      <div className="space-y-1 flex-1 min-w-0 pr-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                          <h4 className="font-sans text-xs font-bold text-on-background truncate">{item.title}</h4>
+                        </div>
+                        <p className="text-[11px] text-on-surface-variant line-clamp-2 leading-relaxed">{item.content}</p>
+                        <span className="text-[10px] text-outline font-semibold block pt-1">{item.date}</span>
+                      </div>
+
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          onClick={() => startEditAnnouncement(item)}
+                          className="p-1 text-primary hover:bg-surface-container-low rounded transition-colors cursor-pointer"
+                          title="Edit Pengumuman"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAnnouncement(item.id)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                          title="Hapus Pengumuman"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

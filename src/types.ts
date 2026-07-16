@@ -98,6 +98,7 @@ export interface AcademicGrade {
   finalScore: number;
   grade: 'A' | 'B' | 'C' | 'D' | 'E';
   notes: string;
+  date?: string;
 }
 
 export type AppView = 'dashboard' | 'students' | 'tahfidz_input' | 'student_portal' | 'akademik' | 'keuangan' | 'laporan' | 'pengaturan' | 'absensi_pengajar' | 'laporan_pengajar' | 'laporan_pencapaian' | 'catatan_poin' | 'kelas_program' | 'penilaian_ujian' | 'data_pengajar';

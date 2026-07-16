@@ -154,9 +154,9 @@ export default function App() {
   const [grades, setGrades] = useState<AcademicGrade[]>(() => {
     const cached = localStorage.getItem('siakad_academic_grades');
     return cached ? JSON.parse(cached) : [
-      { id: 'g1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 85, utsScore: 90, uasScore: 92, finalScore: 89.3, grade: 'A', notes: 'Sangat baik pengetahuannya' },
-      { id: 'g2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 80, utsScore: 85, uasScore: 82, finalScore: 82.6, grade: 'B', notes: 'Pertahankan prestasinya' },
-      { id: 'g3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', subjectCode: 'MD03', subjectName: 'Bahasa Arab (Nahwu)', assignmentScore: 95, utsScore: 92, uasScore: 90, finalScore: 92.1, grade: 'A', notes: 'Luar biasa pemahaman dars' }
+      { id: 'g1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 85, utsScore: 90, uasScore: 92, finalScore: 89.3, grade: 'A', notes: 'Sangat baik pengetahuannya', date: '2026-07-16' },
+      { id: 'g2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 80, utsScore: 85, uasScore: 82, finalScore: 82.6, grade: 'B', notes: 'Pertahankan prestasinya', date: '2026-07-16' },
+      { id: 'g3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', subjectCode: 'MD03', subjectName: 'Bahasa Arab (Nahwu)', assignmentScore: 95, utsScore: 92, uasScore: 90, finalScore: 92.1, grade: 'A', notes: 'Luar biasa pemahaman dars', date: '2026-07-16' }
     ];
   });
 
@@ -677,9 +677,9 @@ export default function App() {
       />
 
       {/* Main Content Workspace Area */}
-      <div className="flex-1 flex flex-col min-w-0 md:pl-[280px]">
+      <div className="flex-1 flex flex-col min-w-0 md:pl-[280px] print:pl-0">
         {/* Top Header Navigation Bar */}
-        <header className="flex justify-between items-center h-16 w-full px-6 sticky top-0 z-30 bg-white border-b border-outline-variant/30 shadow-2xs">
+        <header className="flex justify-between items-center h-16 w-full px-6 sticky top-0 z-30 bg-white border-b border-outline-variant/30 shadow-2xs print:hidden">
           <div className="flex items-center gap-4">
             {/* Hamburger Mobile Menu Toggle Button */}
             <button
@@ -694,33 +694,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Search Bar - Hidden on small mobile */}
-            <div className="hidden sm:flex items-center bg-surface-container-low rounded-full px-4.5 py-1.5 border border-outline-variant/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all">
-              <span className="material-symbols-outlined text-on-surface-variant/70 text-[18px]">search</span>
-              <input
-                type="text"
-                placeholder="Cari santri, NIP..."
-                className="bg-transparent border-none focus:ring-0 text-xs w-48 placeholder-on-surface-variant/50 ml-2 outline-none font-medium"
-              />
-            </div>
-
-            {/* Header Right Icons */}
-            <div className="flex items-center gap-1">
-              {/* Notification icon with badge */}
-              <button className="p-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-full scale-95 active:scale-90 relative cursor-pointer">
-                <span className="material-symbols-outlined text-[22px]">notifications</span>
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-white"></span>
-              </button>
-
-              <button className="p-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-full scale-95 active:scale-90 hidden sm:block cursor-pointer">
-                <span className="material-symbols-outlined text-[22px]">apps</span>
-              </button>
-
-              <button className="p-2 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-full scale-95 active:scale-90 hidden sm:block cursor-pointer">
-                <span className="material-symbols-outlined text-[22px]">help_outline</span>
-              </button>
-            </div>
-
             {/* Profile Avatar & User Info */}
             <div className="flex items-center gap-3 ml-1">
               <div className="text-right hidden md:block">
@@ -761,7 +734,7 @@ export default function App() {
         </header>
 
         {/* Content Section Area Container */}
-        <main className="flex-1 p-6 pb-12 max-w-7xl w-full mx-auto space-y-section-gap overflow-y-auto">
+        <main className="flex-1 p-6 pb-12 max-w-7xl w-full mx-auto space-y-section-gap overflow-y-auto print:p-0 print:m-0 print:overflow-visible">
           {currentView === 'dashboard' && (
             <DashboardView
               students={students}

@@ -41,24 +41,39 @@ export default function Sidebar({
     if (userRole === 'super_admin' || currentUser?.role === 'super_admin') {
       return true;
     }
+    if (userRole === 'wali_santri') {
+      return false; // Wali Santri only gets Portal Madrasah
+    }
+    if (userRole === 'ustadz') {
+      // Ustadz gets access to standard teacher and student tracking views
+      const ustadzViews = [
+        'dashboard',
+        'students',
+        'tahfidz_input',
+        'laporan_pencapaian',
+        'catatan_poin',
+        'penilaian_ujian',
+        'absensi_pengajar'
+      ];
+      return ustadzViews.includes(item.view);
+    }
     if (currentUser?.permittedViews && currentUser.permittedViews.length > 0) {
       const checkViews: string[] = [item.view];
       if (item.view === 'laporan_pencapaian') checkViews.push('tahfidz_history');
       if (item.view === 'catatan_poin') checkViews.push('poin_kedisiplinan');
       return checkViews.some((v) => currentUser.permittedViews!.includes(v));
     }
-    if (userRole === 'ustadz' || userRole === 'wali_santri') {
-      return false;
-    }
     return true;
   });
 
   if (userRole === 'ustadz' || userRole === 'wali_santri') {
-    filteredMenuItems.push({
-      view: 'student_portal' as AppView,
-      label: 'Portal Madrasah',
-      icon: 'door_open',
-    });
+    if (!filteredMenuItems.some(item => item.view === 'student_portal')) {
+      filteredMenuItems.push({
+        view: 'student_portal' as AppView,
+        label: 'Portal Madrasah',
+        icon: 'door_open',
+      });
+    }
   }
 
   const handleRoleToggle = () => {
@@ -96,7 +111,7 @@ export default function Sidebar({
       {isOpen && (
         <div
           id="sidebar-backdrop"
-          className="fixed inset-0 bg-[#003527]/40 backdrop-blur-xs z-40 md:hidden"
+          className="fixed inset-0 bg-[#003527]/40 backdrop-blur-xs z-40 md:hidden print:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -104,7 +119,7 @@ export default function Sidebar({
       {/* Navigation Drawer */}
       <aside
         id="sidebar-container"
-        className={`fixed left-0 top-0 h-screen w-[280px] bg-primary text-on-primary border-r border-outline-variant/30 flex flex-col z-50 transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed left-0 top-0 h-screen w-[280px] bg-primary text-on-primary border-r border-outline-variant/30 flex flex-col z-50 transition-transform duration-300 ease-in-out md:translate-x-0 print:hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

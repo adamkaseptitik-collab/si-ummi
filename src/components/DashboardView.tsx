@@ -565,7 +565,7 @@ export default function DashboardView({
             </div>
             <div className="space-y-1">
               <h3 className="font-sans text-xs font-bold text-primary group-hover:text-primary-container transition-colors">Data Santri</h3>
-              <p className="text-on-surface-variant text-[10px] leading-snug">Roster data profil lengkap, NISN, status keaktifan, &amp; wali.</p>
+              <p className="text-on-surface-variant text-[10px] leading-snug">Roster data profil lengkap, NIP, status keaktifan, &amp; wali.</p>
             </div>
           </div>
 
@@ -1030,7 +1030,7 @@ export default function DashboardView({
                     </div>
                     <div>
                       <h4 className="font-sans text-xs font-bold text-primary">{scannedSantri.name}</h4>
-                      <p className="text-[10px] text-on-surface-variant">NIS: {scannedSantri.nisn || scannedSantri.nip || '-'} | {scannedSantri.class}</p>
+                      <p className="text-[10px] text-on-surface-variant">NIP: {scannedSantri.nip || scannedSantri.nisn || '-'} | {scannedSantri.class}</p>
                     </div>
                     <div className="inline-flex items-center gap-1.5 bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[11px] font-bold">
                       <span className="material-symbols-outlined text-[14px]">check_circle</span>

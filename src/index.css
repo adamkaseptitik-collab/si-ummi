@@ -180,3 +180,31 @@
   background-color: rgba(30, 32, 33, 0.5) !important;
 }
 
+/* Print Media Overrides */
+@media print {
+  body, html, #root {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: auto !important;
+    position: relative !important;
+  }
+  
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .print\:block {
+    display: block !important;
+  }
+
+  main, div, section, article {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    position: static !important;
+  }
+}
+
+

@@ -83,7 +83,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             Sistem Informasi Akademik &amp; Tahfidz
           </p>
           <p className="text-slate-500 text-[10px] mt-0.5">
-            Pondok Pesantren &amp; Madrasah Ummi Jakarta
+            Pondok Pesantren &amp; Madrasah Ummi Kuningan
           </p>
 
           {error && (

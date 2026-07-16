@@ -345,7 +345,7 @@ export default function SetoranFormView({
                 <div className="flex-1">
                   <h4 className="font-bold text-primary text-xs leading-none mb-1">{selectedStudent.name}</h4>
                   <p className="text-[10px] text-on-surface-variant font-medium">
-                    Kelas: {selectedStudent.class} | NISN: {selectedStudent.nisn} | Asrama: {selectedStudent.dormRoom || selectedStudent.dorm}
+                    Kelas: {selectedStudent.class} | NIP: {selectedStudent.nip} | Asrama: {selectedStudent.dormRoom || selectedStudent.dorm}
                   </p>
                 </div>
                 <div className="text-right">

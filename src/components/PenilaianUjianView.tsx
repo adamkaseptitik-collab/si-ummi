@@ -163,6 +163,7 @@ export default function PenilaianUjianView({
       finalScore: final,
       grade: letterGrade,
       notes: gradeNotes,
+      date: new Date().toISOString().split('T')[0],
     };
 
     const exists = grades.some(

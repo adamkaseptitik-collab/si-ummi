@@ -457,7 +457,7 @@ export default function AbsensiPengajarView({
       const record = studentAttendance.find((sa) => sa.studentId === stud.id && sa.date === selectedDate);
       return {
         studentName: stud.name,
-        nisn: stud.nisn || stud.nip || '-',
+        nisn: stud.nip || stud.nisn || '-',
         class: studentSelectedClass,
         date: selectedDate,
         status: record ? record.status : 'Belum Absen',
@@ -521,7 +521,7 @@ export default function AbsensiPengajarView({
               <tr>
                 <th style="width: 40px;" class="text-center">No</th>
                 <th>Nama Santri</th>
-                <th class="text-center">NISN / ID</th>
+                <th class="text-center">NIP / ID</th>
                 <th class="text-center">Kelas</th>
                 <th class="text-center">Tanggal</th>
                 <th class="text-center">Status</th>
@@ -991,7 +991,7 @@ export default function AbsensiPengajarView({
                       {classStudents.length > 0 ? (
                         classStudents.map((stud) => (
                           <option key={stud.id} value={stud.id} className="bg-primary text-white font-medium">
-                            {stud.name} ({stud.nisn || stud.nip})
+                            {stud.name} ({stud.nip || stud.nisn})
                           </option>
                         ))
                       ) : (
@@ -1087,7 +1087,7 @@ export default function AbsensiPengajarView({
                       <tr className="bg-surface-container-low border-b border-outline-variant/60 text-on-surface-variant font-bold uppercase tracking-wider text-[9px]">
                         <th className="p-3 pl-4">No</th>
                         <th className="p-3">Nama Santri</th>
-                        <th className="p-3 text-center">NISN / ID</th>
+                        <th className="p-3 text-center">NIP / ID</th>
                         <th className="p-3">Jam Pelajaran</th>
                         <th className="p-3">Status Kehadiran</th>
                         <th className="p-3">Keterangan</th>
@@ -1106,7 +1106,7 @@ export default function AbsensiPengajarView({
                               <tr key={stud.id} className="hover:bg-surface-container-low/20 transition-colors">
                                 <td className="p-3 pl-4 font-mono text-on-surface-variant">{index + 1}</td>
                                 <td className="p-3 font-bold">{stud.name}</td>
-                                <td className="p-3 text-center font-mono">{stud.nisn || stud.nip || '-'}</td>
+                                <td className="p-3 text-center font-mono">{stud.nip || stud.nisn || '-'}</td>
                                 <td className="p-3">
                                   <select
                                     value={record ? record.lessonHour || '' : ''}
