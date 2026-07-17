@@ -1618,9 +1618,17 @@ export function LaporanView({
             .badge-emerald { background-color: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
             .badge-red { background-color: #fef2f2; color: #991b1b; border-color: #fecaca; }
 
-            .footer { margin-top: 40px; text-align: right; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+            .footer { margin-top: 40px; text-align: right; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+            @page {
+              size: auto;
+              margin: 0mm; /* Hides default browser header/footer containing raw HTTP link */
+            }
             @media print {
-              body { padding: 0; }
+              body {
+                margin: 0 !important;
+                padding: 15mm 20mm !important;
+                background: white !important;
+              }
               .no-print { display: none; }
             }
           </style>
@@ -1702,7 +1710,8 @@ export function LaporanView({
           </div>
 
           <div class="footer">
-            Dicetak otomatis via Sistem Informasi Akademik Pesantren • Tanggal Cetak: ${new Date().toLocaleString('id-ID')}
+            <span>Sistem Informasi Akademik Pesantren UMMI</span>
+            <span><strong>Sistem Informasi UMMI</strong> • Tanggal Cetak: ${new Date().toLocaleString('id-ID')}</span>
           </div>
 
           <script>

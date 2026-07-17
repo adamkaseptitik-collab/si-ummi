@@ -206,7 +206,16 @@ export default function StudentPortalView({
     const style = document.createElement('style');
     style.id = 'temp-print-style';
     style.innerHTML = `
+      @page {
+        size: auto;
+        margin: 0mm; /* Hides default browser header/footer containing raw HTTP link */
+      }
       @media print {
+        html, body {
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white !important;
+        }
         #root {
           display: none !important;
         }
@@ -216,8 +225,9 @@ export default function StudentPortalView({
         #temp-print-area {
           display: block !important;
           width: 100% !important;
+          box-sizing: border-box !important;
           margin: 0 !important;
-          padding: 24px !important;
+          padding: 18mm 20mm !important; /* Elegant printable page margins */
           background: white !important;
           color: black !important;
         }
@@ -1570,6 +1580,12 @@ export default function StudentPortalView({
             <div className="h-16"></div>
             <p className="font-bold underline text-sm">{portalSettings.kepalaMadrasah || "KH. Abdullah, M.Pd.I"}</p>
           </div>
+        </div>
+
+        {/* Official Footer Watermark */}
+        <div className="mt-16 pt-3 border-t border-gray-200 text-center text-[10px] text-gray-400 font-medium tracking-wide flex justify-between items-center">
+          <span>* MADRASAH &amp; PONDOK UMMI</span>
+          <span className="font-semibold uppercase text-gray-500 tracking-wider">Sistem Informasi UMMI</span>
         </div>
       </div>
     </div>
