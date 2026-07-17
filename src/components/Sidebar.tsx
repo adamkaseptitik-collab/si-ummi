@@ -38,6 +38,15 @@ export default function Sidebar({
   ];
 
   const filteredMenuItems = menuItems.filter((item) => {
+    // 1. If we have custom permitted views for this specific user, use them as absolute truth!
+    if (currentUser?.permittedViews && currentUser.permittedViews.length > 0) {
+      const checkViews: string[] = [item.view];
+      if (item.view === 'laporan_pencapaian') checkViews.push('tahfidz_history');
+      if (item.view === 'catatan_poin') checkViews.push('poin_kedisiplinan');
+      return checkViews.some((v) => currentUser.permittedViews!.includes(v));
+    }
+
+    // 2. Otherwise fallback to the role based defaults
     if (userRole === 'super_admin' || currentUser?.role === 'super_admin') {
       return true;
     }
@@ -57,17 +66,15 @@ export default function Sidebar({
       ];
       return ustadzViews.includes(item.view);
     }
-    if (currentUser?.permittedViews && currentUser.permittedViews.length > 0) {
-      const checkViews: string[] = [item.view];
-      if (item.view === 'laporan_pencapaian') checkViews.push('tahfidz_history');
-      if (item.view === 'catatan_poin') checkViews.push('poin_kedisiplinan');
-      return checkViews.some((v) => currentUser.permittedViews!.includes(v));
-    }
     return true;
   });
 
-  if (userRole === 'ustadz' || userRole === 'wali_santri') {
-    if (!filteredMenuItems.some(item => item.view === 'student_portal')) {
+  if (userRole === 'ustadz' || userRole === 'wali_santri' || (userRole === 'super_admin' && currentUser?.permittedViews?.includes('student_portal'))) {
+    const isPermitted = currentUser?.permittedViews && currentUser.permittedViews.length > 0
+      ? currentUser.permittedViews.includes('student_portal')
+      : true;
+
+    if (isPermitted && !filteredMenuItems.some(item => item.view === 'student_portal')) {
       filteredMenuItems.push({
         view: 'student_portal' as AppView,
         label: 'Portal Madrasah',

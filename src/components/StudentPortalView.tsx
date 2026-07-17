@@ -12,6 +12,8 @@ interface StudentPortalViewProps {
   onSelectStudent: (id: string | null) => void;
   setView: (view: AppView) => void;
   userRole?: UserRole;
+  portalSettings: any;
+  announcements: AnnouncementItem[];
 }
 
 export default function StudentPortalView({
@@ -24,6 +26,8 @@ export default function StudentPortalView({
   onSelectStudent,
   setView,
   userRole,
+  portalSettings,
+  announcements = [],
 }: StudentPortalViewProps) {
   const [activeTab, setActiveTab] = useState<'grades' | 'violations' | 'notes'>('grades');
   const [certModalOpen, setCertModalOpen] = useState(false);
@@ -41,29 +45,6 @@ export default function StudentPortalView({
   });
   const [dateSelectionDone, setDateSelectionDone] = useState(false);
 
-  const [portalSettings, setPortalSettings] = useState(() => {
-    const cached = localStorage.getItem('siakad_portal_settings');
-    return cached ? JSON.parse(cached) : {
-      institutionName: "YAYASAN PONDOK PESANTREN UMMI",
-      subTitle: "MADRASAH ALIYAH & TAHFIDZ AL-QUR'AN UMMI",
-      nsm: "121235060002",
-      npsn: "20214812",
-      address: "Jl. Pesantren No. 01, Kel. Watubelah, Kec. Sumber, Kuningan, Jawa Barat 45611",
-      email: "info@alfathanah.sch.id",
-      phone: "(0231) 8849021",
-      welcomeMsg: "Selamat datang. Anda dapat melihat Laporan Perkembangan Akademik Santri atau Profil Pondok Pesantren di bawah ini.",
-      vision: "Terwujudnya Generasi Qur'ani, Berakhlakul Karimah, Unggul dalam IPTEK, dan Kokoh dalam IMTAK.",
-      mission: [
-        "Menyelenggarakan pendidikan formal dan informal diniyah yang berorientasi pada tahfidzul Qur'an secara profesional.",
-        "Membina akhlakul karimah melalui teladan kiai dan pembiasaan disiplin kehidupan santri di pondok pesantren.",
-        "Meningkatkan penguasaan ilmu pengetahuan, bahasa Arab, dan teknologi terapan bagi santri masa kini.",
-        "Mengembangkan potensi bakat dan minat kepemimpinan santri secara integral dan berkelanjutan."
-      ],
-      kepalaMadrasah: "KH. Abdullah, M.Pd.I",
-      ustadzTahfidz: "Ust. Ahmad Baihaqi"
-    };
-  });
-
   const getFormattedDate = () => {
     const date = new Date();
     const months = [
@@ -75,28 +56,6 @@ export default function StudentPortalView({
     const year = date.getFullYear();
     return `${day} ${month} ${year}`;
   };
-
-  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(() => {
-    const cached = localStorage.getItem('siakad_portal_announcements');
-    return cached ? JSON.parse(cached) : ANNOUNCEMENT_ITEMS;
-  });
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const cachedSettings = localStorage.getItem('siakad_portal_settings');
-      if (cachedSettings) {
-        setPortalSettings(JSON.parse(cachedSettings));
-      }
-      const cachedAnnouncements = localStorage.getItem('siakad_portal_announcements');
-      if (cachedAnnouncements) {
-        setAnnouncements(JSON.parse(cachedAnnouncements));
-      }
-    };
-    
-    // Check periodically
-    const interval = setInterval(handleStorageChange, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Find all setoran history dynamically for this student
   const studentRecords = (records || []).filter((r) => r.studentId === student.id);
@@ -388,15 +347,16 @@ export default function StudentPortalView({
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
 
-      h2p().from(clone).set(opt).save().then(() => {
-        wrapper.remove();
-      }).catch((err: any) => {
-        console.error('PDF generation error:', err);
-        wrapper.remove();
-        alert('Gagal menyusun PDF: ' + err.message);
-      });
+      h2p().set(opt).from(clone).save();
+      
+      // Safe deferment for cleaning up cloned DOM after browser triggers down-stream canvas printing
+      setTimeout(() => {
+        if (wrapper && wrapper.parentNode) {
+          wrapper.parentNode.removeChild(wrapper);
+        }
+      }, 2000);
     } catch (err: any) {
-      alert(err.message);
+      alert("Error: " + err.message);
     }
   };
 
@@ -604,7 +564,7 @@ export default function StudentPortalView({
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-on-surface-variant">
                     <span className="flex items-center gap-1.5 font-medium">
                       <span className="material-symbols-outlined text-[16px] text-primary">badge</span>
-                      <span>NIP: {student.nip}</span>
+                      <span>NIS: {student.nip}</span>
                     </span>
                     <span className="flex items-center gap-1.5 font-medium">
                       <span className="material-symbols-outlined text-[16px] text-primary">class</span>
@@ -972,7 +932,7 @@ export default function StudentPortalView({
               <div className="space-y-3 my-8">
                 <p className="text-xs text-amber-800 italic">Dengan ini menyatakan kelayakan &amp; kelulusan atas ujian kepada santri:</p>
                 <h3 className="font-display text-2xl font-bold text-primary underline decoration-amber-500/50 decoration-2">{student.name}</h3>
-                <p className="text-[11px] font-bold text-amber-900 tracking-wider">NIP: {student.nip} | Kelas: {student.class}</p>
+                <p className="text-[11px] font-bold text-amber-900 tracking-wider">NIS: {student.nip} | Kelas: {student.class}</p>
               </div>
 
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg max-w-md mx-auto">
@@ -1154,7 +1114,7 @@ export default function StudentPortalView({
                               <td>{student.name}</td>
                             </tr>
                             <tr className="border-b border-gray-100">
-                              <td className="font-bold py-0.5">NIP</td>
+                              <td className="font-bold py-0.5">NIS</td>
                               <td>:</td>
                               <td>{student.nip}</td>
                             </tr>
@@ -1412,7 +1372,7 @@ export default function StudentPortalView({
                   <td>{student.name}</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="font-bold py-1">NIP</td>
+                  <td className="font-bold py-1">NIS</td>
                   <td>:</td>
                   <td>{student.nip}</td>
                 </tr>

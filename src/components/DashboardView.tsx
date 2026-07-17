@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Student, AppView, MemorizationRecord, UserAccount, ScheduleItem, AgendaItem } from '../types';
 import { SCHEDULE_ITEMS, AGENDA_ITEMS, CLASSES, PROGRAMS } from '../data';
+import { saveDocument, deleteDocument } from '../firebase';
 
 interface DashboardViewProps {
   students: Student[];
@@ -10,6 +11,8 @@ interface DashboardViewProps {
   setSelectedStudentId: (id: string | null) => void;
   onAddStudent: () => void;
   classes: string[];
+  agendaItems: AgendaItem[];
+  scheduleItems: ScheduleItem[];
 }
 
 export default function DashboardView({
@@ -20,6 +23,8 @@ export default function DashboardView({
   setSelectedStudentId,
   onAddStudent,
   classes,
+  agendaItems,
+  scheduleItems,
 }: DashboardViewProps) {
   const [dashClass, setDashClass] = useState('');
   const [dashProgram, setDashProgram] = useState('');
@@ -66,17 +71,6 @@ export default function DashboardView({
       document.documentElement.classList.remove('dark');
     }
   };
-
-  // Managing Agenda and Schedule locally with localStorage persistence
-  const [agendaItems, setAgendaItems] = useState<AgendaItem[]>(() => {
-    const cached = localStorage.getItem('siakad_dashboard_agenda');
-    return cached ? JSON.parse(cached) : AGENDA_ITEMS;
-  });
-
-  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(() => {
-    const cached = localStorage.getItem('siakad_dashboard_schedule');
-    return cached ? JSON.parse(cached) : SCHEDULE_ITEMS;
-  });
 
   // Real-time clock for Schedule auto-checking
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -162,40 +156,22 @@ export default function DashboardView({
       return;
     }
 
-    let updated: AgendaItem[];
-    if (agendaFormId) {
-      updated = agendaItems.map((item) =>
-        item.id === agendaFormId
-          ? {
-              ...item,
-              title: agendaFormTitle,
-              description: agendaFormDesc,
-              date: agendaFormDate,
-              label: agendaFormLabel,
-            }
-          : item
-      );
-    } else {
-      const newItem: AgendaItem = {
-        id: `ag_user_${Date.now()}`,
-        title: agendaFormTitle,
-        description: agendaFormDesc,
-        date: agendaFormDate,
-        label: agendaFormLabel,
-      };
-      updated = [newItem, ...agendaItems];
-    }
+    const itemId = agendaFormId || `ag_user_${Date.now()}`;
+    const agendaDoc: AgendaItem = {
+      id: itemId,
+      title: agendaFormTitle,
+      description: agendaFormDesc,
+      date: agendaFormDate,
+      label: agendaFormLabel,
+    };
 
-    setAgendaItems(updated);
-    localStorage.setItem('siakad_dashboard_agenda', JSON.stringify(updated));
+    saveDocument('dashboard_agenda', itemId, agendaDoc);
     resetAgendaForm();
   };
 
   const handleDeleteAgenda = (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus agenda ini?')) {
-      const updated = agendaItems.filter((item) => item.id !== id);
-      setAgendaItems(updated);
-      localStorage.setItem('siakad_dashboard_agenda', JSON.stringify(updated));
+      deleteDocument('dashboard_agenda', id);
     }
   };
 
@@ -223,44 +199,24 @@ export default function DashboardView({
       return;
     }
 
-    let updated: ScheduleItem[];
-    if (scheduleFormId) {
-      updated = scheduleItems.map((item) =>
-        item.id === scheduleFormId
-          ? {
-              ...item,
-              time: scheduleFormTime,
-              title: scheduleFormTitle,
-              location: scheduleFormLoc,
-              icon: scheduleFormIcon,
-              isCurrent: scheduleFormIsCurrent,
-              isPast: scheduleFormIsPast,
-            }
-          : item
-      );
-    } else {
-      const newItem: ScheduleItem = {
-        id: `sc_user_${Date.now()}`,
-        time: scheduleFormTime,
-        title: scheduleFormTitle,
-        location: scheduleFormLoc,
-        icon: scheduleFormIcon,
-        isCurrent: scheduleFormIsCurrent,
-        isPast: scheduleFormIsPast,
-      };
-      updated = [...scheduleItems, newItem];
-    }
+    const itemId = scheduleFormId || `sc_user_${Date.now()}`;
+    const scheduleDoc: ScheduleItem = {
+      id: itemId,
+      time: scheduleFormTime,
+      title: scheduleFormTitle,
+      location: scheduleFormLoc,
+      icon: scheduleFormIcon,
+      isCurrent: scheduleFormIsCurrent,
+      isPast: scheduleFormIsPast,
+    };
 
-    setScheduleItems(updated);
-    localStorage.setItem('siakad_dashboard_schedule', JSON.stringify(updated));
+    saveDocument('dashboard_schedule', itemId, scheduleDoc);
     resetScheduleForm();
   };
 
   const handleDeleteSchedule = (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus jadwal kegiatan ini?')) {
-      const updated = scheduleItems.filter((item) => item.id !== id);
-      setScheduleItems(updated);
-      localStorage.setItem('siakad_dashboard_schedule', JSON.stringify(updated));
+      deleteDocument('dashboard_schedule', id);
     }
   };
 
@@ -565,7 +521,7 @@ export default function DashboardView({
             </div>
             <div className="space-y-1">
               <h3 className="font-sans text-xs font-bold text-primary group-hover:text-primary-container transition-colors">Data Santri</h3>
-              <p className="text-on-surface-variant text-[10px] leading-snug">Roster data profil lengkap, NIP, status keaktifan, &amp; wali.</p>
+              <p className="text-on-surface-variant text-[10px] leading-snug">Roster data profil lengkap, NIS, status keaktifan, &amp; wali.</p>
             </div>
           </div>
 
@@ -1030,7 +986,7 @@ export default function DashboardView({
                     </div>
                     <div>
                       <h4 className="font-sans text-xs font-bold text-primary">{scannedSantri.name}</h4>
-                      <p className="text-[10px] text-on-surface-variant">NIP: {scannedSantri.nip || scannedSantri.nisn || '-'} | {scannedSantri.class}</p>
+                      <p className="text-[10px] text-on-surface-variant">NIS: {scannedSantri.nip || scannedSantri.nisn || '-'} | {scannedSantri.class}</p>
                     </div>
                     <div className="inline-flex items-center gap-1.5 bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-[11px] font-bold">
                       <span className="material-symbols-outlined text-[14px]">check_circle</span>

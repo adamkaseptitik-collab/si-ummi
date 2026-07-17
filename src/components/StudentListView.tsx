@@ -303,7 +303,7 @@ export default function StudentListView({
   const handleExportExcel = () => {
     const headers = [
       'No',
-      'NIP',
+      'NIS',
       'Nama Lengkap',
       'Tempat Lahir',
       'Tgl Lahir',
@@ -655,7 +655,7 @@ export default function StudentListView({
               <tr className="bg-surface-container-low border-b border-outline-variant/60">
                 <th className="font-sans text-[10px] font-bold text-on-surface-variant px-4 py-3.5 w-12 text-center uppercase tracking-wider">No</th>
                 <th className="font-sans text-[10px] font-bold text-on-surface-variant px-4 py-3.5 uppercase tracking-wider">Foto</th>
-                <th className="font-sans text-[10px] font-bold text-on-surface-variant px-4 py-3.5 uppercase tracking-wider">NIP</th>
+                <th className="font-sans text-[10px] font-bold text-on-surface-variant px-4 py-3.5 uppercase tracking-wider">NIS</th>
                 <th className="font-sans text-[10px] font-bold text-on-surface-variant px-4 py-3.5 uppercase tracking-wider">Nama Lengkap</th>
                 <th className="font-sans text-[10px] font-bold text-on-surface-variant px-4 py-3.5 uppercase tracking-wider">Tempat Lahir</th>
                 <th className="font-sans text-[10px] font-bold text-on-surface-variant px-4 py-3.5 uppercase tracking-wider">Tgl Lahir</th>
@@ -700,7 +700,7 @@ export default function StudentListView({
                         </div>
                       </td>
 
-                      {/* NIP */}
+                      {/* NIS */}
                       <td className="px-4 py-3 font-mono text-on-surface font-medium whitespace-nowrap">
                         {student.nip || student.id}
                       </td>
@@ -903,7 +903,7 @@ export default function StudentListView({
 
                 {/* NIP */}
                 <div>
-                  <label className="block text-on-surface font-semibold mb-1">NIP (Nomor Induk Pondok)</label>
+                  <label className="block text-on-surface font-semibold mb-1">NIS (Nomor Induk Santri)</label>
                   <input
                     type="text"
                     required

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Student, TeacherAttendance, StudentAttendance, PointRecord, MemorizationRecord, UserAccount, UserLog, Teacher, AnnouncementItem } from '../types';
+import { saveDocument, deleteDocument } from '../firebase';
 
 const ALL_MENU_VIEWS = [
   { view: 'dashboard', label: 'Dashboard' },
@@ -15,6 +16,7 @@ const ALL_MENU_VIEWS = [
   { view: 'pengaturan', label: 'Pengaturan' },
   { view: 'data_pengajar', label: 'Data Pengajar' },
   { view: 'laporan_pengajar', label: 'Laporan Pengajar' },
+  { view: 'student_portal', label: 'Portal Wali Santri' },
 ];
 import { CLASSES, PROGRAMS, USTADZ_LIST } from '../data';
 
@@ -33,6 +35,8 @@ interface OtherViewsProps {
   users?: UserAccount[];
   onUpdateUsers?: (u: UserAccount[]) => void;
   teachers?: Teacher[];
+  portalSettings?: any;
+  announcements?: AnnouncementItem[];
 }
 
 interface Subject {
@@ -1140,9 +1144,8 @@ export function LaporanView({
 
     if (activeTab === 'students') {
       filename = `Laporan_Keseluruhan_Santri_${new Date().toISOString().slice(0, 10)}.csv`;
-      headers = ['NIS', 'NIP', 'Nama Santri', 'Tempat Lahir', 'Tgl Lahir', 'Kelas', 'Gender', 'Orangtua/Wali', 'No HP', 'Alamat', 'Tahun Masuk', 'Program', 'Status'];
+      headers = ['NIS', 'Nama Santri', 'Tempat Lahir', 'Tgl Lahir', 'Kelas', 'Gender', 'Orangtua/Wali', 'No HP', 'Alamat', 'Tahun Masuk', 'Program', 'Status'];
       rows = filteredStudents.map((s) => [
-        s.nis || '-',
         s.nip || '-',
         s.name,
         s.birthPlace || '-',
@@ -1274,8 +1277,7 @@ export function LaporanView({
       tableHeaders = `
         <tr>
           <th style="width: 40px;" class="text-center">No</th>
-          <th style="width: 90px;">NIS</th>
-          <th style="width: 90px;">NIP</th>
+          <th style="width: 100px;">NIS</th>
           <th>Nama Lengkap</th>
           <th>Kelas</th>
           <th>Program</th>
@@ -1288,7 +1290,6 @@ export function LaporanView({
       tableRows = filteredStudents.map((s, idx) => `
         <tr>
           <td class="text-center font-mono">${idx + 1}</td>
-          <td class="font-mono">${s.nis || '-'}</td>
           <td class="font-mono">${s.nip || '-'}</td>
           <td><strong>${s.name}</strong></td>
           <td class="text-center">${s.class}</td>
@@ -2000,7 +2001,7 @@ export function LaporanView({
               <thead>
                 <tr className="bg-surface-container-low border-b border-outline-variant/60 text-on-surface-variant font-bold uppercase tracking-wider text-[9px] sticky top-0 z-10">
                   <th className="p-3 pl-4">Foto</th>
-                  <th className="p-3">NIS / NIP</th>
+                  <th className="p-3">NIS</th>
                   <th className="p-3">Nama Santri</th>
                   <th className="p-3">Lahir</th>
                   <th className="p-3">Kelas / Program</th>
@@ -2024,8 +2025,7 @@ export function LaporanView({
                       )}
                     </td>
                     <td className="p-3 font-mono text-[11px]">
-                      <div>NIS: {s.nis || '-'}</div>
-                      <div className="text-on-surface-variant mt-0.5">ID: {s.nip || '-'}</div>
+                      {s.nip || '-'}
                     </td>
                     <td className="p-3">
                       <div className="font-bold text-primary">{s.name}</div>
@@ -2534,54 +2534,32 @@ export function PengaturanView({
   onUpdateCurrentUser,
   users: usersProp,
   onUpdateUsers,
+  portalSettings = {
+    institutionName: "YAYASAN PONDOK PESANTREN UMMI",
+    subTitle: "MADRASAH ALIYAH & TAHFIDZ AL-QUR'AN UMMI",
+    nsm: "121235060002",
+    npsn: "20214812",
+    address: "Jl. Pesantren No. 01, Kel. Watubelah, Kec. Sumber, Kuningan, Jawa Barat 45611",
+    email: "info@alfathanah.sch.id",
+    phone: "(0231) 8849021",
+    welcomeMsg: "Selamat datang. Anda dapat melihat Laporan Perkembangan Akademik Santri atau Profil Pondok Pesantren di bawah ini.",
+    vision: "Terwujudnya Generasi Qur'ani, Berakhlakul Karimah, Unggul dalam IPTEK, dan Kokoh dalam IMTAK.",
+    mission: [
+      "Menyelenggarakan pendidikan formal dan informal diniyah yang berorientasi pada tahfidzul Qur'an secara profesional.",
+      "Membina akhlakul karimah melalui teladan kiai dan pembiasaan disiplin kehidupan santri di pondok pesantren.",
+      "Meningkatkan penguasaan ilmu pengetahuan, bahasa Arab, dan teknologi terapan bagi santri masa kini.",
+      "Mengembangkan potensi bakat dan minat kepemimpinan santri secara integral dan berkelanjutan."
+    ],
+    kepalaMadrasah: "KH. Abdullah, M.Pd.I",
+    ustadzTahfidz: "Ust. Ahmad Baihaqi"
+  },
+  announcements = [],
 }: OtherViewsProps) {
   // Check if current user is super admin
   const isSuperAdmin = currentUser?.role === 'super_admin';
 
   // Settings sub tabs for super admin
   const [settingsTab, setSettingsTab] = useState<'profile_accounts' | 'portal_management'>('profile_accounts');
-
-  const [portalSettings, setPortalSettings] = useState(() => {
-    const cached = localStorage.getItem('siakad_portal_settings');
-    return cached ? JSON.parse(cached) : {
-      institutionName: "YAYASAN PONDOK PESANTREN UMMI",
-      subTitle: "MADRASAH ALIYAH & TAHFIDZ AL-QUR'AN UMMI",
-      nsm: "121235060002",
-      npsn: "20214812",
-      address: "Jl. Pesantren No. 01, Kel. Watubelah, Kec. Sumber, Kuningan, Jawa Barat 45611",
-      email: "info@alfathanah.sch.id",
-      phone: "(0231) 8849021",
-      welcomeMsg: "Selamat datang. Anda dapat melihat Laporan Perkembangan Akademik Santri atau Profil Pondok Pesantren di bawah ini.",
-      vision: "Terwujudnya Generasi Qur'ani, Berakhlakul Karimah, Unggul dalam IPTEK, dan Kokoh dalam IMTAK.",
-      mission: [
-        "Menyelenggarakan pendidikan formal dan informal diniyah yang berorientasi pada tahfidzul Qur'an secara profesional.",
-        "Membina akhlakul karimah melalui teladan kiai dan pembiasaan disiplin kehidupan santri di pondok pesantren.",
-        "Meningkatkan penguasaan ilmu pengetahuan, bahasa Arab, dan teknologi terapan bagi santri masa kini.",
-        "Mengembangkan potensi bakat dan minat kepemimpinan santri secara integral dan berkelanjutan."
-      ],
-      kepalaMadrasah: "KH. Abdullah, M.Pd.I",
-      ustadzTahfidz: "Ust. Ahmad Baihaqi"
-    };
-  });
-
-  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(() => {
-    const cached = localStorage.getItem('siakad_portal_announcements');
-    const defaultAnnouncements = [
-      {
-        id: 'an1',
-        title: 'Pembayaran SPP Semester Genap',
-        content: 'Batas akhir pembayaran SPP semester genap adalah tanggal 25 bulan ini. Mohon segera diselesaikan untuk kelancaran administrasi.',
-        date: '2 Hari yang lalu'
-      },
-      {
-        id: 'an2',
-        title: 'Jadwal Pengambilan Raport',
-        content: 'Pengambilan raport sisipan akan dilaksanakan pada hari Jumat secara bergiliran untuk menghindari antrean panjang.',
-        date: '1 Minggu yang lalu'
-      }
-    ];
-    return cached ? JSON.parse(cached) : defaultAnnouncements;
-  });
 
   // State for dark mode / light mode
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('siakad_dark_mode') === 'true');
@@ -2656,8 +2634,7 @@ export function PengaturanView({
       kepalaMadrasah: psKepalaMadrasah,
       ustadzTahfidz: psUstadzTahfidz
     };
-    setPortalSettings(updatedSettings);
-    localStorage.setItem('siakad_portal_settings', JSON.stringify(updatedSettings));
+    saveDocument('portal_settings', 'main', updatedSettings);
     alert('Konfigurasi Portal Wali Santri berhasil disimpan!');
     
     // Log the action
@@ -2678,28 +2655,27 @@ export function PengaturanView({
     e.preventDefault();
     if (!annTitle.trim() || !annContent.trim()) return;
 
-    let updated: AnnouncementItem[];
     if (editingAnnouncementId) {
-      updated = announcements.map(an => an.id === editingAnnouncementId ? {
-        ...an,
+      const updatedItem = {
+        id: editingAnnouncementId,
         title: annTitle,
         content: annContent,
         date: annDate || 'Hari ini'
-      } : an);
+      };
+      saveDocument('portal_announcements', editingAnnouncementId, updatedItem);
       alert('Pengumuman berhasil diperbarui!');
     } else {
+      const annId = `an_${Date.now()}`;
       const newAnn: AnnouncementItem = {
-        id: `an_${Date.now()}`,
+        id: annId,
         title: annTitle,
         content: annContent,
         date: annDate || 'Baru saja'
       };
-      updated = [newAnn, ...announcements];
+      saveDocument('portal_announcements', annId, newAnn);
       alert('Pengumuman baru berhasil ditambahkan!');
     }
     
-    setAnnouncements(updated);
-    localStorage.setItem('siakad_portal_announcements', JSON.stringify(updated));
     setEditingAnnouncementId(null);
     setAnnTitle('');
     setAnnContent('');
@@ -2708,9 +2684,7 @@ export function PengaturanView({
 
   const handleDeleteAnnouncement = (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus pengumuman ini?')) {
-      const updated = announcements.filter(an => an.id !== id);
-      setAnnouncements(updated);
-      localStorage.setItem('siakad_portal_announcements', JSON.stringify(updated));
+      deleteDocument('portal_announcements', id);
       alert('Pengumuman berhasil dihapus!');
     }
   };
@@ -2816,25 +2790,32 @@ export function PengaturanView({
         'kelas_program',
         'tahfidz_input',
         'tahfidz_history',
+        'akademik',
         'absensi_pengajar',
         'penilaian_ujian',
         'poin_kedisiplinan',
         'laporan',
-        'pengaturan'
+        'pengaturan',
+        'data_pengajar',
+        'laporan_pengajar',
+        'student_portal'
       ]);
     } else if (newRole === 'ustadz') {
       setNewPermittedViews([
         'dashboard',
+        'students',
         'tahfidz_input',
         'tahfidz_history',
         'absensi_pengajar',
         'penilaian_ujian',
-        'poin_kedisiplinan'
+        'poin_kedisiplinan',
+        'student_portal'
       ]);
     } else if (newRole === 'wali_santri') {
       setNewPermittedViews([
         'dashboard',
-        'tahfidz_history'
+        'tahfidz_history',
+        'student_portal'
       ]);
     }
   }, [newRole]);

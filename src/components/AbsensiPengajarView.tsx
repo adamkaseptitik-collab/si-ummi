@@ -521,7 +521,7 @@ export default function AbsensiPengajarView({
               <tr>
                 <th style="width: 40px;" class="text-center">No</th>
                 <th>Nama Santri</th>
-                <th class="text-center">NIP / ID</th>
+                <th class="text-center">NIS / ID</th>
                 <th class="text-center">Kelas</th>
                 <th class="text-center">Tanggal</th>
                 <th class="text-center">Status</th>
@@ -1087,7 +1087,7 @@ export default function AbsensiPengajarView({
                       <tr className="bg-surface-container-low border-b border-outline-variant/60 text-on-surface-variant font-bold uppercase tracking-wider text-[9px]">
                         <th className="p-3 pl-4">No</th>
                         <th className="p-3">Nama Santri</th>
-                        <th className="p-3 text-center">NIP / ID</th>
+                        <th className="p-3 text-center">NIS / ID</th>
                         <th className="p-3">Jam Pelajaran</th>
                         <th className="p-3">Status Kehadiran</th>
                         <th className="p-3">Keterangan</th>

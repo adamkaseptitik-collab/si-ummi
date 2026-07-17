@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { AppView, UserRole, Student, MemorizationRecord, TeacherAttendance, TeachingJournal, PointCategory, PointRecord, UserAccount, AcademicGrade, StudentAttendance, Teacher } from './types';
-import { INITIAL_STUDENTS, INITIAL_MEMORIZATION, INITIAL_TEACHER_ATTENDANCE, INITIAL_TEACHING_JOURNALS, INITIAL_POINT_CATEGORIES, INITIAL_POINT_RECORDS } from './data';
+import { AppView, UserRole, Student, MemorizationRecord, TeacherAttendance, TeachingJournal, PointCategory, PointRecord, UserAccount, AcademicGrade, StudentAttendance, Teacher, ScheduleItem, AgendaItem, AnnouncementItem } from './types';
+import { INITIAL_STUDENTS, INITIAL_MEMORIZATION, INITIAL_TEACHER_ATTENDANCE, INITIAL_TEACHING_JOURNALS, INITIAL_POINT_CATEGORIES, INITIAL_POINT_RECORDS, SCHEDULE_ITEMS, AGENDA_ITEMS, ANNOUNCEMENT_ITEMS } from './data';
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
 import StudentListView from './components/StudentListView';
@@ -182,7 +182,38 @@ export default function App() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>('s1'); // Ahmad Fathanah as default
   const [addStudentOpen, setAddStudentOpen] = useState(false);
 
+  // Dynamic real-time states for Agenda, Schedule, Portal Settings, and Announcements
+  const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
+  const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>([]);
+  const [portalSettings, setPortalSettings] = useState<any>({
+    institutionName: "YAYASAN PONDOK PESANTREN UMMI",
+    subTitle: "MADRASAH ALIYAH & TAHFIDZ AL-QUR'AN UMMI",
+    nsm: "121235060002",
+    npsn: "20214812",
+    address: "Jl. Pesantren No. 01, Kel. Watubelah, Kec. Sumber, Kuningan, Jawa Barat 45611",
+    email: "info@alfathanah.sch.id",
+    phone: "(0231) 8849021",
+    welcomeMsg: "Selamat datang. Anda dapat melihat Laporan Perkembangan Akademik Santri atau Profil Pondok Pesantren di bawah ini.",
+    vision: "Terwujudnya Generasi Qur'ani, Berakhlakul Karimah, Unggul dalam IPTEK, dan Kokoh dalam IMTAK.",
+    mission: [
+      "Menyelenggarakan pendidikan formal and informal diniyah yang berorientasi pada tahfidzul Qur'an secara profesional.",
+      "Membina akhlakul karimah melalui teladan kiai dan pembiasaan disiplin kehidupan santri di pondok pesantren.",
+      "Meningkatkan penguasaan ilmu pengetahuan, bahasa Arab, dan teknologi terapan bagi santri masa kini.",
+      "Mengembangkan potensi bakat dan minat kepemimpinan santri secara integral dan berkelanjutan."
+    ],
+    kepalaMadrasah: "KH. Abdullah, M.Pd.I",
+    ustadzTahfidz: "Ust. Ahmad Baihaqi"
+  });
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
+
   // References to keep listeners synchronized without re-registration
+  const agendaRef = useRef(agendaItems);
+  const scheduleRef = useRef(scheduleItems);
+  const announcementsRef = useRef(announcements);
+
+  useEffect(() => { agendaRef.current = agendaItems; }, [agendaItems]);
+  useEffect(() => { scheduleRef.current = scheduleItems; }, [scheduleItems]);
+  useEffect(() => { announcementsRef.current = announcements; }, [announcements]);
   const classesRef = useRef(classes);
   const programsRef = useRef(programs);
   const studentsRef = useRef(students);
@@ -366,6 +397,62 @@ export default function App() {
         photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60'
       }
     ]);
+
+    const unsubAgenda = listenCollection<AgendaItem>('dashboard_agenda', (data) => {
+      const sorted = [...data].sort((a, b) => a.id.localeCompare(b.id));
+      if (JSON.stringify(sorted) !== JSON.stringify(agendaRef.current)) {
+        setAgendaItems(sorted);
+      }
+    }, AGENDA_ITEMS);
+
+    const unsubSchedule = listenCollection<ScheduleItem>('dashboard_schedule', (data) => {
+      const sorted = [...data].sort((a, b) => a.time.localeCompare(b.time));
+      if (JSON.stringify(sorted) !== JSON.stringify(scheduleRef.current)) {
+        setScheduleItems(sorted);
+      }
+    }, SCHEDULE_ITEMS);
+
+    const unsubAnnouncements = listenCollection<AnnouncementItem>('portal_announcements', (data) => {
+      const sorted = [...data].sort((a, b) => b.id.localeCompare(a.id));
+      if (JSON.stringify(sorted) !== JSON.stringify(announcementsRef.current)) {
+        setAnnouncements(sorted);
+      }
+    }, ANNOUNCEMENT_ITEMS);
+
+    const unsubSettings = onSnapshot(doc(db, 'portal_settings', 'main'), (snapshot) => {
+      if (snapshot.exists()) {
+        setPortalSettings(snapshot.data());
+      } else {
+        const defaultSettings = {
+          institutionName: "YAYASAN PONDOK PESANTREN UMMI",
+          subTitle: "MADRASAH ALIYAH & TAHFIDZ AL-QUR'AN UMMI",
+          nsm: "121235060002",
+          npsn: "20214812",
+          address: "Jl. Pesantren No. 01, Kel. Watubelah, Kec. Sumber, Kuningan, Jawa Barat 45611",
+          email: "info@alfathanah.sch.id",
+          phone: "(0231) 8849021",
+          welcomeMsg: "Selamat datang. Anda dapat melihat Laporan Perkembangan Akademik Santri atau Profil Pondok Pesantren di bawah ini.",
+          vision: "Terwujudnya Generasi Qur'ani, Berakhlakul Karimah, Unggul dalam IPTEK, dan Kokoh dalam IMTAK.",
+          mission: [
+            "Menyelenggarakan pendidikan formal and informal diniyah yang berorientasi pada tahfidzul Qur'an secara profesional.",
+            "Membina akhlakul karimah melalui teladan kiai dan pembiasaan disiplin kehidupan santri di pondok pesantren.",
+            "Meningkatkan penguasaan ilmu pengetahuan, bahasa Arab, dan teknologi terapan bagi santri masa kini.",
+            "Mengembangkan potensi bakat dan minat kepemimpinan santri secara integral dan berkelanjutan."
+          ],
+          kepalaMadrasah: "KH. Abdullah, M.Pd.I",
+          ustadzTahfidz: "Ust. Ahmad Baihaqi"
+        };
+        setDoc(doc(db, 'portal_settings', 'main'), defaultSettings).catch(err => console.warn(err));
+        setPortalSettings(defaultSettings);
+      }
+    });
+
+    return () => {
+      unsubAgenda();
+      unsubSchedule();
+      unsubAnnouncements();
+      unsubSettings();
+    };
   }, []);
 
   // Write-through synchronization wrappers to write updates directly to Firestore
@@ -747,6 +834,8 @@ export default function App() {
                 setView('students');
                 setAddStudentOpen(true);
               }}
+              agendaItems={agendaItems}
+              scheduleItems={scheduleItems}
             />
           )}
 
@@ -797,6 +886,8 @@ export default function App() {
               onSelectStudent={setSelectedStudentId}
               setView={setView}
               userRole={userRole}
+              portalSettings={portalSettings}
+              announcements={announcements}
             />
           )}
 
@@ -835,6 +926,8 @@ export default function App() {
               onUpdateCurrentUser={setCurrentUser} 
               users={users}
               onUpdateUsers={handleUpdateUsers}
+              portalSettings={portalSettings}
+              announcements={announcements}
             />
           )}
 
