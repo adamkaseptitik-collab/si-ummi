@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TeacherAttendance, Student, StudentAttendance, Teacher } from '../types';
+import { TeacherAttendance, Student, StudentAttendance, Teacher, Subject } from '../types';
 import { USTADZ_LIST } from '../data';
 
 interface AbsensiPengajarViewProps {
@@ -10,6 +10,7 @@ interface AbsensiPengajarViewProps {
   studentAttendance?: StudentAttendance[];
   onUpdateStudentAttendance?: (updated: StudentAttendance[]) => void;
   teachers?: Teacher[];
+  subjects?: Subject[];
 }
 
 const JAM_PELAJARAN_LIST = [
@@ -31,6 +32,7 @@ export default function AbsensiPengajarView({
   studentAttendance = [],
   onUpdateStudentAttendance = () => {},
   teachers = [],
+  subjects = [],
 }: AbsensiPengajarViewProps) {
   // Navigation: 'ustadz' | 'santri'
   const [activeTab, setActiveTab] = useState<'ustadz' | 'santri'>('ustadz');
@@ -46,16 +48,16 @@ export default function AbsensiPengajarView({
   const [searchTerm, setSearchTerm] = useState('');
 
   // Load subjects from academic menu
-  const [subjectsList] = useState<any[]>(() => {
+  const [subjectsList, setSubjectsList] = useState<any[]>(() => {
     const cached = localStorage.getItem('siakad_academic_subjects');
-    return cached ? JSON.parse(cached) : [
-      { code: 'MD01', name: 'Aqidah Akhlaq' },
-      { code: 'MD02', name: 'Fiqih Ibadah' },
-      { code: 'MD03', name: 'Bahasa Arab (Nahwu)' },
-      { code: 'MD04', name: 'Shorof & Tashrif' },
-      { code: 'MD05', name: 'Tajwid & Makharij' },
-    ];
+    return cached ? JSON.parse(cached) : [];
   });
+
+  useEffect(() => {
+    if (subjects && subjects.length > 0) {
+      setSubjectsList(subjects);
+    }
+  }, [subjects]);
 
   // ==========================================
   // STATE & LOGIC: TEACHER ATTENDANCE (USTADZ)

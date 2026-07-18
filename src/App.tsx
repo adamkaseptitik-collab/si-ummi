@@ -88,17 +88,20 @@ export default function App() {
 
   const [records, setRecords] = useState<MemorizationRecord[]>(() => {
     const cached = localStorage.getItem('siakad_memorization');
-    return cached ? JSON.parse(cached) : INITIAL_MEMORIZATION;
+    const parsed: MemorizationRecord[] = cached ? JSON.parse(cached) : INITIAL_MEMORIZATION;
+    return (parsed || []).filter(item => !['m1', 'm2', 'm3'].includes(item.id));
   });
 
   const [teacherAttendance, setTeacherAttendance] = useState<TeacherAttendance[]>(() => {
     const cached = localStorage.getItem('siakad_teacher_attendance');
-    return cached ? JSON.parse(cached) : INITIAL_TEACHER_ATTENDANCE;
+    const parsed: TeacherAttendance[] = cached ? JSON.parse(cached) : INITIAL_TEACHER_ATTENDANCE;
+    return (parsed || []).filter(item => !['ta1', 'ta2', 'ta3', 'ta4', 'ta5', 'ta6'].includes(item.id));
   });
 
   const [teachingJournals, setTeachingJournals] = useState<TeachingJournal[]>(() => {
     const cached = localStorage.getItem('siakad_teaching_journals');
-    return cached ? JSON.parse(cached) : INITIAL_TEACHING_JOURNALS;
+    const parsed: TeachingJournal[] = cached ? JSON.parse(cached) : INITIAL_TEACHING_JOURNALS;
+    return (parsed || []).filter(item => !['tj1', 'tj2', 'tj3'].includes(item.id));
   });
 
   const [pointCategories, setPointCategories] = useState<PointCategory[]>(() => {
@@ -108,7 +111,8 @@ export default function App() {
 
   const [pointRecords, setPointRecords] = useState<PointRecord[]>(() => {
     const cached = localStorage.getItem('siakad_point_records');
-    return cached ? JSON.parse(cached) : INITIAL_POINT_RECORDS;
+    const parsed: PointRecord[] = cached ? JSON.parse(cached) : INITIAL_POINT_RECORDS;
+    return (parsed || []).filter(item => !['pr1', 'pr2', 'pr3', 'pr4'].includes(item.id));
   });
 
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
@@ -155,32 +159,20 @@ export default function App() {
 
   const [grades, setGrades] = useState<AcademicGrade[]>(() => {
     const cached = localStorage.getItem('siakad_academic_grades');
-    return cached ? JSON.parse(cached) : [
-      { id: 'g1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 85, utsScore: 90, uasScore: 92, finalScore: 89.3, grade: 'A', notes: 'Sangat baik pengetahuannya', date: '2026-07-16' },
-      { id: 'g2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 80, utsScore: 85, uasScore: 82, finalScore: 82.6, grade: 'B', notes: 'Pertahankan prestasinya', date: '2026-07-16' },
-      { id: 'g3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', subjectCode: 'MD03', subjectName: 'Bahasa Arab (Nahwu)', assignmentScore: 95, utsScore: 92, uasScore: 90, finalScore: 92.1, grade: 'A', notes: 'Luar biasa pemahaman dars', date: '2026-07-16' }
-    ];
+    const parsed: AcademicGrade[] = cached ? JSON.parse(cached) : [];
+    return (parsed || []).filter(item => !['g1', 'g2', 'g3'].includes(item.id));
   });
 
   const [subjects, setSubjects] = useState<Subject[]>(() => {
     const cached = localStorage.getItem('siakad_academic_subjects');
-    return cached ? JSON.parse(cached) : [
-      { code: 'MD01', name: 'Aqidah Akhlaq', teacher: 'Ust. Ahmad Baihaqi', hours: 4, room: 'Kelas 10-A' },
-      { code: 'MD02', name: 'Fiqih Ibadah', teacher: 'Ust. Abdullah', hours: 4, room: 'Kelas 10-B' },
-      { code: 'MD03', name: 'Bahasa Arab (Nahwu)', teacher: 'Ustadzah Fatimah', hours: 6, room: 'Masjid Utama' },
-      { code: 'MD04', name: 'Shorof & Tashrif', teacher: 'Ustadzah Fatimah', hours: 4, room: 'Kelas 11-A' },
-      { code: 'MD05', name: 'Tajwid & Makharij', teacher: 'Ust. Ahmad Baihaqi', hours: 2, room: 'Masjid Utama' },
-    ];
+    const parsed: Subject[] = cached ? JSON.parse(cached) : [];
+    return (parsed || []).filter(item => !['MD01', 'MD02', 'MD03', 'MD04', 'MD05'].includes(item.code));
   });
 
   const [studentAttendance, setStudentAttendance] = useState<StudentAttendance[]>(() => {
     const cached = localStorage.getItem('siakad_student_attendance');
-    const todayStr = new Date().toISOString().split('T')[0];
-    return cached ? JSON.parse(cached) : [
-      { id: 'sa1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', date: todayStr, status: 'Hadir', notes: 'Datang pagi' },
-      { id: 'sa2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', date: todayStr, status: 'Izin', notes: 'Sakit gigi' },
-      { id: 'sa3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', date: todayStr, status: 'Hadir' }
-    ];
+    const parsed: StudentAttendance[] = cached ? JSON.parse(cached) : [];
+    return (parsed || []).filter(item => !['sa1', 'sa2', 'sa3'].includes(item.id));
   });
 
   const [users, setUsers] = useState<UserAccount[]>(() => {
@@ -293,6 +285,67 @@ export default function App() {
 
     seedConfig();
 
+    // One-time programmatic cleanup of default seed data from Firestore & Local Storage
+    const cleanupOldSeedData = async () => {
+      try {
+        const cleanupKey = 'siakad_cleanup_force_v12';
+        if (localStorage.getItem(cleanupKey)) {
+          return;
+        }
+
+        console.log("Starting programmatic cleanup of default seed data...");
+
+        const mIds = ['m1', 'm2', 'm3'];
+        for (const id of mIds) {
+          await deleteDocument('memorization_records', id);
+        }
+
+        const prIds = ['pr1', 'pr2', 'pr3', 'pr4'];
+        for (const id of prIds) {
+          await deleteDocument('point_records', id);
+        }
+
+        const subIds = ['MD01', 'MD02', 'MD03', 'MD04', 'MD05'];
+        for (const id of subIds) {
+          await deleteDocument('academic_subjects', id);
+        }
+
+        const taIds = ['ta1', 'ta2', 'ta3', 'ta4', 'ta5', 'ta6'];
+        for (const id of taIds) {
+          await deleteDocument('teacher_attendance', id);
+        }
+
+        const tjIds = ['tj1', 'tj2', 'tj3'];
+        for (const id of tjIds) {
+          await deleteDocument('teaching_journals', id);
+        }
+
+        const gIds = ['g1', 'g2', 'g3'];
+        for (const id of gIds) {
+          await deleteDocument('academic_grades', id);
+        }
+
+        const saIds = ['sa1', 'sa2', 'sa3'];
+        for (const id of saIds) {
+          await deleteDocument('student_attendance', id);
+        }
+
+        localStorage.removeItem('siakad_memorization');
+        localStorage.removeItem('siakad_teacher_attendance');
+        localStorage.removeItem('siakad_point_records');
+        localStorage.removeItem('siakad_academic_grades');
+        localStorage.removeItem('siakad_student_attendance');
+        localStorage.removeItem('siakad_academic_subjects');
+
+        localStorage.setItem(cleanupKey, 'true');
+        console.log("Programmatic cleanup of default seed data complete.");
+      } catch (err) {
+        console.warn("Failed to run cleanup of default seed data:", err);
+      }
+    };
+
+    cleanupOldSeedData();
+
     // 2. Synchronize all other collections
     listenCollection<Student>('students', (data) => {
       const sorted = [...data].sort((a, b) => a.name.localeCompare(b.name));
@@ -302,21 +355,24 @@ export default function App() {
     }, INITIAL_STUDENTS);
 
     listenCollection<MemorizationRecord>('memorization_records', (data) => {
-      const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
+      const filtered = data.filter(item => !['m1', 'm2', 'm3'].includes(item.id));
+      const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
       if (JSON.stringify(sorted) !== JSON.stringify(recordsRef.current)) {
         setRecords(sorted);
       }
     }, INITIAL_MEMORIZATION);
 
     listenCollection<TeacherAttendance>('teacher_attendance', (data) => {
-      const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
+      const filtered = data.filter(item => !['ta1', 'ta2', 'ta3', 'ta4', 'ta5', 'ta6'].includes(item.id));
+      const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
       if (JSON.stringify(sorted) !== JSON.stringify(teacherAttendanceRef.current)) {
         setTeacherAttendance(sorted);
       }
     }, INITIAL_TEACHER_ATTENDANCE);
 
     listenCollection<TeachingJournal>('teaching_journals', (data) => {
-      const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
+      const filtered = data.filter(item => !['tj1', 'tj2', 'tj3'].includes(item.id));
+      const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
       if (JSON.stringify(sorted) !== JSON.stringify(teachingJournalsRef.current)) {
         setTeachingJournals(sorted);
       }
@@ -329,47 +385,37 @@ export default function App() {
     }, INITIAL_POINT_CATEGORIES);
 
     listenCollection<PointRecord>('point_records', (data) => {
-      const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
+      const filtered = data.filter(item => !['pr1', 'pr2', 'pr3', 'pr4'].includes(item.id));
+      const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
       if (JSON.stringify(sorted) !== JSON.stringify(pointRecordsRef.current)) {
         setPointRecords(sorted);
       }
     }, INITIAL_POINT_RECORDS);
 
     listenCollection<AcademicGrade>('academic_grades', (data) => {
-      if (JSON.stringify(data) !== JSON.stringify(gradesRef.current)) {
-        setGrades(data);
+      const filtered = data.filter(item => !['g1', 'g2', 'g3'].includes(item.id));
+      if (JSON.stringify(filtered) !== JSON.stringify(gradesRef.current)) {
+        setGrades(filtered);
       }
-    }, [
-      { id: 'g1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 85, utsScore: 90, uasScore: 92, finalScore: 89.3, grade: 'A', notes: 'Sangat baik pengetahuannya' },
-      { id: 'g2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 80, utsScore: 85, uasScore: 82, finalScore: 82.6, grade: 'B', notes: 'Pertahankan prestasinya' },
-      { id: 'g3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', subjectCode: 'MD03', subjectName: 'Bahasa Arab (Nahwu)', assignmentScore: 95, utsScore: 92, uasScore: 90, finalScore: 92.1, grade: 'A', notes: 'Luar biasa pemahaman dars' }
-    ]);
+    }, []);
 
     listenCollection<Subject>('academic_subjects', (data) => {
-      const sorted = [...data].sort((a, b) => a.code.localeCompare(b.code));
+      const filtered = data.filter(item => !['MD01', 'MD02', 'MD03', 'MD04', 'MD05'].includes(item.code));
+      const sorted = [...filtered].sort((a, b) => a.code.localeCompare(b.code));
       if (JSON.stringify(sorted) !== JSON.stringify(subjectsRef.current)) {
         setSubjects(sorted);
         localStorage.setItem('siakad_academic_subjects', JSON.stringify(sorted));
       }
-    }, [
-      { code: 'MD01', name: 'Aqidah Akhlaq', teacher: 'Ust. Ahmad Baihaqi', hours: 4, room: 'Kelas 10-A' },
-      { code: 'MD02', name: 'Fiqih Ibadah', teacher: 'Ust. Abdullah', hours: 4, room: 'Kelas 10-B' },
-      { code: 'MD03', name: 'Bahasa Arab (Nahwu)', teacher: 'Ustadzah Fatimah', hours: 6, room: 'Masjid Utama' },
-      { code: 'MD04', name: 'Shorof & Tashrif', teacher: 'Ustadzah Fatimah', hours: 4, room: 'Kelas 11-A' },
-      { code: 'MD05', name: 'Tajwid & Makharij', teacher: 'Ust. Ahmad Baihaqi', hours: 2, room: 'Masjid Utama' },
-    ]);
+    }, []);
 
     const todayStr = new Date().toISOString().split('T')[0];
     listenCollection<StudentAttendance>('student_attendance', (data) => {
-      const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
+      const filtered = data.filter(item => !['sa1', 'sa2', 'sa3'].includes(item.id));
+      const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
       if (JSON.stringify(sorted) !== JSON.stringify(studentAttendanceRef.current)) {
         setStudentAttendance(sorted);
       }
-    }, [
-      { id: 'sa1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', date: todayStr, status: 'Hadir', notes: 'Datang pagi' },
-      { id: 'sa2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', date: todayStr, status: 'Izin', notes: 'Sakit gigi' },
-      { id: 'sa3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', date: todayStr, status: 'Hadir' }
-    ]);
+    }, []);
 
     listenCollection<UserAccount>('users', (data) => {
       if (JSON.stringify(data) !== JSON.stringify(usersRef.current)) {
@@ -990,6 +1036,7 @@ export default function App() {
               studentAttendance={studentAttendance}
               onUpdateStudentAttendance={handleUpdateStudentAttendance}
               teachers={teachers}
+              subjects={subjects}
             />
           )}
 

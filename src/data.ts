@@ -223,83 +223,7 @@ export const INITIAL_STUDENTS: Student[] = [
   }
 ];
 
-export const INITIAL_MEMORIZATION: MemorizationRecord[] = [
-  {
-    id: 'm1',
-    studentId: 's1',
-    studentName: 'Ahmad Fathanah',
-    date: '2023-11-12',
-    ustadz: 'Ust. Ahmad Baihaqi',
-    type: 'Hafalan Baru (Ziyadah)',
-    juz: 15,
-    surah: 'Al-Kahfi',
-    startAyat: 1,
-    endAyat: 50,
-    page: 293,
-    line: '1-15',
-    fluencyScore: 85,
-    tajwidScore: 90,
-    tartilScore: 88,
-    notesChecklist: {
-      makharijulHuruf: false,
-      madConsistency: false,
-      ghunnahHold: false
-    },
-    finalScore: 87.6,
-    grade: 'A',
-    predikat: 'Sangat Baik (Jayyid Jiddan)'
-  },
-  {
-    id: 'm2',
-    studentId: 's2',
-    studentName: 'Ahmad Rizqi Maulana',
-    date: '2024-05-15',
-    ustadz: 'Ust. Ahmad Baihaqi',
-    type: 'Hafalan Baru (Ziyadah)',
-    juz: 5,
-    surah: "Al-Ma'idah",
-    startAyat: 1,
-    endAyat: 40,
-    page: 110,
-    line: '1-15',
-    fluencyScore: 88,
-    tajwidScore: 89,
-    tartilScore: 88,
-    notesChecklist: {
-      makharijulHuruf: false,
-      madConsistency: true,
-      ghunnahHold: false
-    },
-    finalScore: 88.3,
-    grade: 'A',
-    predikat: 'Sangat Baik (Jayyid Jiddan)'
-  },
-  {
-    id: 'm3',
-    studentId: 's3',
-    studentName: 'Siti Aisyah Azzahra',
-    date: '2024-05-14',
-    ustadz: 'Ust. Abdullah',
-    type: 'Hafalan Baru (Ziyadah)',
-    juz: 2,
-    surah: 'Al-Baqarah',
-    startAyat: 200,
-    endAyat: 252,
-    page: 41,
-    line: '1-15',
-    fluencyScore: 91,
-    tajwidScore: 93,
-    tartilScore: 92,
-    notesChecklist: {
-      makharijulHuruf: false,
-      madConsistency: false,
-      ghunnahHold: false
-    },
-    finalScore: 92.0,
-    grade: 'A',
-    predikat: 'Istimewa (Mumtaz)'
-  }
-];
+export const INITIAL_MEMORIZATION: MemorizationRecord[] = [];
 
 export const SCHEDULE_ITEMS: ScheduleItem[] = [
   {
@@ -524,20 +448,9 @@ export const USTADZ_LIST = [
   'Ustadzah Sarah'
 ];
 
-export const INITIAL_TEACHER_ATTENDANCE: TeacherAttendance[] = [
-  { id: 'ta1', teacherName: 'Ust. Ahmad Baihaqi', date: '2026-07-07', status: 'Hadir', timeIn: '06:45', timeOut: '14:30', notes: 'Mengajar kelas pagi' },
-  { id: 'ta2', teacherName: 'Ust. Abdullah', date: '2026-07-07', status: 'Hadir', timeIn: '07:12', timeOut: '15:00', notes: 'Tepat waktu' },
-  { id: 'ta3', teacherName: 'Ustadzah Fatimah', date: '2026-07-07', status: 'Hadir', timeIn: '07:05', timeOut: '14:45', notes: 'Mengajar Nahwu' },
-  { id: 'ta4', teacherName: 'Ust. Muhammad Yusuf', date: '2026-07-07', status: 'Izin', notes: 'Ada keperluan keluarga di luar kota' },
-  { id: 'ta5', teacherName: 'Ust. Ali Ridho', date: '2026-07-07', status: 'Hadir', timeIn: '06:58', notes: 'Piket Masjid' },
-  { id: 'ta6', teacherName: 'Ustadzah Sarah', date: '2026-07-07', status: 'Sakit', notes: 'Demam tinggi' }
-];
+export const INITIAL_TEACHER_ATTENDANCE: TeacherAttendance[] = [];
 
-export const INITIAL_TEACHING_JOURNALS = [
-  { id: 'tj1', teacherName: 'Ust. Ahmad Baihaqi', subject: 'Aqidah Akhlaq', class: '10 IPA 1', date: '2026-07-06', topic: 'Bab Tauhid dan Ma\'rifatullah', presentStudents: 28, totalStudents: 30, notes: 'Santri sangat antusias mengikuti materi.' },
-  { id: 'tj2', teacherName: 'Ust. Abdullah', subject: 'Fiqih Ibadah', class: '10 MIPA A', date: '2026-07-06', topic: 'Thaharah (Wudhu dan tayamum)', presentStudents: 25, totalStudents: 25, notes: 'Praktek tayamum berjalan lancar.' },
-  { id: 'tj3', teacherName: 'Ustadzah Fatimah', subject: 'Bahasa Arab (Nahwu)', class: '10 IPS B', date: '2026-07-05', topic: 'Isim, Fi\'il, dan Harf', presentStudents: 23, totalStudents: 24, notes: 'Satu santri izin sakit.' }
-];
+export const INITIAL_TEACHING_JOURNALS = [];
 
 export const INITIAL_POINT_CATEGORIES: PointCategory[] = [
   { id: 'pc1', type: 'Pelanggaran', name: 'Terlambat Berjamaah', points: -5 },
@@ -552,10 +465,5 @@ export const INITIAL_POINT_CATEGORIES: PointCategory[] = [
   { id: 'pc10', type: 'Prestasi', name: 'Membantu Ustadz', points: 15 }
 ];
 
-export const INITIAL_POINT_RECORDS: PointRecord[] = [
-  { id: 'pr1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', date: '2026-07-06', type: 'Prestasi', categoryName: 'Hafal 1 Juz Baru', points: 30, notes: 'Menyelesaikan setoran juz 15 dengan sangat baik', teacherName: 'Ust. Ahmad Baihaqi' },
-  { id: 'pr2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', date: '2026-07-05', type: 'Pelanggaran', categoryName: 'Terlambat Berjamaah', points: -5, notes: 'Terlambat shalat Subuh berjamaah', teacherName: 'Ust. Abdullah' },
-  { id: 'pr3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', date: '2026-07-05', type: 'Prestasi', categoryName: 'Juara Kelas / Lomba', points: 40, notes: 'Juara 1 Lomba Pidato Bahasa Arab', teacherName: 'Ustadzah Fatimah' },
-  { id: 'pr4', studentId: 's5', studentName: 'Ahmad Zaki', class: 'Kelas 11A', date: '2026-07-04', type: 'Pelanggaran', categoryName: 'Melanggar Aturan Berpakaian', points: -5, notes: 'Tidak memakai peci saat KBM', teacherName: 'Ust. Ali Ridho' }
-];
+export const INITIAL_POINT_RECORDS: PointRecord[] = [];
 
