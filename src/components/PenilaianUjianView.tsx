@@ -8,6 +8,8 @@ interface PenilaianUjianViewProps {
   classes: string[];
   grades: AcademicGrade[];
   onUpdateGrades: (grades: AcademicGrade[]) => void;
+  subjects: Subject[];
+  onUpdateSubjects: (subjects: Subject[]) => void;
 }
 
 export default function PenilaianUjianView({
@@ -15,22 +17,10 @@ export default function PenilaianUjianView({
   classes,
   grades,
   onUpdateGrades,
+  subjects,
+  onUpdateSubjects,
 }: PenilaianUjianViewProps) {
-  // Load subjects
-  const [subjects, setSubjects] = useState<Subject[]>(() => {
-    const cached = localStorage.getItem('siakad_academic_subjects');
-    return cached ? JSON.parse(cached) : [
-      { code: 'MD01', name: 'Aqidah Akhlaq', teacher: 'Ust. Ahmad Baihaqi', hours: 4, room: 'Kelas 10-A' },
-      { code: 'MD02', name: 'Fiqih Ibadah', teacher: 'Ust. Abdullah', hours: 4, room: 'Kelas 10-B' },
-      { code: 'MD03', name: 'Bahasa Arab (Nahwu)', teacher: 'Ustadzah Fatimah', hours: 6, room: 'Masjid Utama' },
-      { code: 'MD04', name: 'Shorof & Tashrif', teacher: 'Ustadzah Fatimah', hours: 4, room: 'Kelas 11-A' },
-      { code: 'MD05', name: 'Tajwid & Makharij', teacher: 'Ust. Ahmad Baihaqi', hours: 2, room: 'Masjid Utama' },
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('siakad_academic_subjects', JSON.stringify(subjects));
-  }, [subjects]);
+  const setSubjects = onUpdateSubjects;
 
   // Selected filters
   const [selectedSubjectCode, setSelectedSubjectCode] = useState('');

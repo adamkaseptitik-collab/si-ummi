@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { AppView, UserRole, Student, MemorizationRecord, TeacherAttendance, TeachingJournal, PointCategory, PointRecord, UserAccount, AcademicGrade, StudentAttendance, Teacher, ScheduleItem, AgendaItem, AnnouncementItem } from './types';
+import { AppView, UserRole, Student, MemorizationRecord, TeacherAttendance, TeachingJournal, PointCategory, PointRecord, UserAccount, AcademicGrade, StudentAttendance, Teacher, ScheduleItem, AgendaItem, AnnouncementItem, Subject } from './types';
 import { INITIAL_STUDENTS, INITIAL_MEMORIZATION, INITIAL_TEACHER_ATTENDANCE, INITIAL_TEACHING_JOURNALS, INITIAL_POINT_CATEGORIES, INITIAL_POINT_RECORDS, SCHEDULE_ITEMS, AGENDA_ITEMS, ANNOUNCEMENT_ITEMS } from './data';
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
@@ -39,10 +39,12 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Force student portal view for non-admin roles
+  // Force default views based on roles
   useEffect(() => {
-    if (userRole === 'ustadz' || userRole === 'wali_santri') {
+    if (userRole === 'wali_santri') {
       setView('student_portal');
+    } else if (userRole === 'ustadz') {
+      setView('dashboard');
     }
   }, [userRole]);
 
@@ -160,6 +162,17 @@ export default function App() {
     ];
   });
 
+  const [subjects, setSubjects] = useState<Subject[]>(() => {
+    const cached = localStorage.getItem('siakad_academic_subjects');
+    return cached ? JSON.parse(cached) : [
+      { code: 'MD01', name: 'Aqidah Akhlaq', teacher: 'Ust. Ahmad Baihaqi', hours: 4, room: 'Kelas 10-A' },
+      { code: 'MD02', name: 'Fiqih Ibadah', teacher: 'Ust. Abdullah', hours: 4, room: 'Kelas 10-B' },
+      { code: 'MD03', name: 'Bahasa Arab (Nahwu)', teacher: 'Ustadzah Fatimah', hours: 6, room: 'Masjid Utama' },
+      { code: 'MD04', name: 'Shorof & Tashrif', teacher: 'Ustadzah Fatimah', hours: 4, room: 'Kelas 11-A' },
+      { code: 'MD05', name: 'Tajwid & Makharij', teacher: 'Ust. Ahmad Baihaqi', hours: 2, room: 'Masjid Utama' },
+    ];
+  });
+
   const [studentAttendance, setStudentAttendance] = useState<StudentAttendance[]>(() => {
     const cached = localStorage.getItem('siakad_student_attendance');
     const todayStr = new Date().toISOString().split('T')[0];
@@ -223,6 +236,7 @@ export default function App() {
   const pointCategoriesRef = useRef(pointCategories);
   const pointRecordsRef = useRef(pointRecords);
   const gradesRef = useRef(grades);
+  const subjectsRef = useRef(subjects);
   const studentAttendanceRef = useRef(studentAttendance);
   const usersRef = useRef(users);
   const teachersRef = useRef(teachers);
@@ -236,6 +250,7 @@ export default function App() {
   useEffect(() => { pointCategoriesRef.current = pointCategories; }, [pointCategories]);
   useEffect(() => { pointRecordsRef.current = pointRecords; }, [pointRecords]);
   useEffect(() => { gradesRef.current = grades; }, [grades]);
+  useEffect(() => { subjectsRef.current = subjects; }, [subjects]);
   useEffect(() => { studentAttendanceRef.current = studentAttendance; }, [studentAttendance]);
   useEffect(() => { usersRef.current = users; }, [users]);
   useEffect(() => { teachersRef.current = teachers; }, [teachers]);
@@ -328,6 +343,20 @@ export default function App() {
       { id: 'g1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 85, utsScore: 90, uasScore: 92, finalScore: 89.3, grade: 'A', notes: 'Sangat baik pengetahuannya' },
       { id: 'g2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 80, utsScore: 85, uasScore: 82, finalScore: 82.6, grade: 'B', notes: 'Pertahankan prestasinya' },
       { id: 'g3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', subjectCode: 'MD03', subjectName: 'Bahasa Arab (Nahwu)', assignmentScore: 95, utsScore: 92, uasScore: 90, finalScore: 92.1, grade: 'A', notes: 'Luar biasa pemahaman dars' }
+    ]);
+
+    listenCollection<Subject>('academic_subjects', (data) => {
+      const sorted = [...data].sort((a, b) => a.code.localeCompare(b.code));
+      if (JSON.stringify(sorted) !== JSON.stringify(subjectsRef.current)) {
+        setSubjects(sorted);
+        localStorage.setItem('siakad_academic_subjects', JSON.stringify(sorted));
+      }
+    }, [
+      { code: 'MD01', name: 'Aqidah Akhlaq', teacher: 'Ust. Ahmad Baihaqi', hours: 4, room: 'Kelas 10-A' },
+      { code: 'MD02', name: 'Fiqih Ibadah', teacher: 'Ust. Abdullah', hours: 4, room: 'Kelas 10-B' },
+      { code: 'MD03', name: 'Bahasa Arab (Nahwu)', teacher: 'Ustadzah Fatimah', hours: 6, room: 'Masjid Utama' },
+      { code: 'MD04', name: 'Shorof & Tashrif', teacher: 'Ustadzah Fatimah', hours: 4, room: 'Kelas 11-A' },
+      { code: 'MD05', name: 'Tajwid & Makharij', teacher: 'Ust. Ahmad Baihaqi', hours: 2, room: 'Masjid Utama' },
     ]);
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -591,6 +620,21 @@ export default function App() {
     gradesRef.current.forEach(async (item) => {
       if (!updated.some(x => x.id === item.id)) {
         await deleteDocument('academic_grades', item.id);
+      }
+    });
+  };
+
+  const handleUpdateSubjects = async (updated: Subject[]) => {
+    setSubjects(updated);
+    updated.forEach(async (item) => {
+      const existing = subjectsRef.current.find(x => x.code === item.code);
+      if (!existing || JSON.stringify(existing) !== JSON.stringify(item)) {
+        await saveDocument('academic_subjects', item.code, item);
+      }
+    });
+    subjectsRef.current.forEach(async (item) => {
+      if (!updated.some(x => x.code === item.code)) {
+        await deleteDocument('academic_subjects', item.code);
       }
     });
   };
@@ -897,6 +941,10 @@ export default function App() {
               classes={classes}
               programs={programs}
               teachers={teachers}
+              subjects={subjects}
+              onUpdateSubjects={handleUpdateSubjects}
+              grades={grades}
+              onUpdateGrades={handleUpdateGrades}
             />
           )}
           {currentView === 'laporan' && (
@@ -917,6 +965,8 @@ export default function App() {
               classes={classes}
               grades={grades}
               onUpdateGrades={handleUpdateGrades}
+              subjects={subjects}
+              onUpdateSubjects={handleUpdateSubjects}
             />
           )}
           {currentView === 'pengaturan' && (

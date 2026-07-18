@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { UserAccount } from '../types';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 interface LoginScreenProps {
   onLoginSuccess: (user: UserAccount) => void;
@@ -11,19 +13,30 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [error, setError] = useState('');
   const [showCredentialsHint, setShowCredentialsHint] = useState(true);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     const defaultUsers: UserAccount[] = [
-      { id: 'usr_1', fullName: 'KH. Abdullah, M.Pd.I', username: 'kiai_abdullah', password: 'admin123', email: 'kiai@madrasah.id', role: 'super_admin', status: 'Aktif', photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCT6NXmNPs8fpwE88VxNJVMhwFUOQoNeheJsGxQ70-1Y5tYXP10y7dwfl43EW6J3tnUfqH3Mg5lMVkJGhiM11Pqjy-ufWSHFCQmzpRe9BlY5CdzpcnmdWPdH_JJ95B18EFcIfjBtXjSDayMkWX_0gSHiUzZJ3zbbcKemk9Ax77T6dFsYMJahcL7SHAOp7PGZ8EIv1tJZ7gZZQsraKNliWXlPtXW_FcFNDmPieof4P6L0Fu1f6_AKqU3' },
-      { id: 'usr_2', fullName: 'Ust. Ahmad Baihaqi', username: 'ust_ahmad', password: 'ahmad123', email: 'ahmad@madrasah.id', role: 'ustadz', status: 'Aktif', photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCkLYXeLgpBsZWbBC8F6MHXFF40RID1YkqZxXrsP-H0Fbc2i6FRGU5MdMW47p6gSBNGUTFfcOxtK4ad4zdQb1uPKsU8QPZLRsw0N_eRN2nGl-jYeYqCnnYLH5ajiDH7hSrKl8YCSBLFTos7hWz65yS-Q6Pk7agAo3GUYYVPKihODvnjhD64eygg9QNugdZ4HPEsUlWvFJTOXyCv013c9pRr8AIf8RLXPJYoP9yC43dtDquPvx6b1Yyw' },
-      { id: 'usr_3', fullName: 'Wali Ahmad Fathanah', username: 'wali_fathanah', password: 'wali123', email: 'wali.fathanah@gmail.com', role: 'wali_santri', status: 'Aktif', photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDWm4KibatigPk2YlT4VSXuchCtAGmxn4rboR2upZPNUS_KrT-oNdadIaHBrvLzv3TjijYw3wHHerP4gUwuQcO7OOgvWY7SfUnMpw1iCO_2TP3L2Gm3YsXqdRmOWRxgsDoxO2ToruXaxrhbWfIwh8Z814Mx2uXq8IZPVa_qwOIPcv0fXdPLBg7klwYW8ENSObxGX2juxunP-LrC850vZB0HtUxW8KIroHw2WIUVGTBXrP32NyNWEg6g' },
+      { id: 'usr_1', fullName: 'KH. Abdullah, M.Pd.I', username: 'kiai_abdullah', password: 'admin123', email: 'kiai@madrasah.id', role: 'super_admin', status: 'Aktif', permittedViews: ['dashboard', 'students', 'kelas_program', 'tahfidz_input', 'tahfidz_history', 'absensi_pengajar', 'penilaian_ujian', 'poin_kedisiplinan', 'laporan', 'pengaturan', 'data_pengajar', 'laporan_pengajar', 'student_portal'], photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCT6NXmNPs8fpwE88VxNJVMhwFUOQoNeheJsGxQ70-1Y5tYXP10y7dwfl43EW6J3tnUfqH3Mg5lMVkJGhiM11Pqjy-ufWSHFCQmzpRe9BlY5CdzpcnmdWPdH_JJ95B18EFcIfjBtXjSDayMkWX_0gSHiUzZJ3zbbcKemk9Ax77T6dFsYMJahcL7SHAOp7PGZ8EIv1tJZ7gZZQsraKNliWXlPtXW_FcFNDmPieof4P6L0Fu1f6_AKqU3' },
+      { id: 'usr_2', fullName: 'Ust. Ahmad Baihaqi', username: 'ust_ahmad', password: 'ahmad123', email: 'ahmad@madrasah.id', role: 'ustadz', status: 'Aktif', permittedViews: ['dashboard', 'tahfidz_input', 'tahfidz_history', 'absensi_pengajar', 'penilaian_ujian', 'poin_kedisiplinan', 'student_portal'], photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCkLYXeLgpBsZWbBC8F6MHXFF40RID1YkqZxXrsP-H0Fbc2i6FRGU5MdMW47p6gSBNGUTFfcOxtK4ad4zdQb1uPKsU8QPZLRsw0N_eRN2nGl-jYeYqCnnYLH5ajiDH7hSrKl8YCSBLFTos7hWz65yS-Q6Pk7agAo3GUYYVPKihODvnjhD64eygg9QNugdZ4HPEsUlWvFJTOXyCv013c9pRr8AIf8RLXPJYoP9yC43dtDquPvx6b1Yyw' },
+      { id: 'usr_3', fullName: 'Wali Ahmad Fathanah', username: 'wali_fathanah', password: 'wali123', email: 'wali.fathanah@gmail.com', role: 'wali_santri', status: 'Aktif', permittedViews: ['dashboard', 'tahfidz_history', 'student_portal'], photoUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDWm4KibatigPk2YlT4VSXuchCtAGmxn4rboR2upZPNUS_KrT-oNdadIaHBrvLzv3TjijYw3wHHerP4gUwuQcO7OOgvWY7SfUnMpw1iCO_2TP3L2Gm3YsXqdRmOWRxgsDoxO2ToruXaxrhbWfIwh8Z814Mx2uXq8IZPVa_qwOIPcv0fXdPLBg7klwYW8ENSObxGX2juxunP-LrC850vZB0HtUxW8KIroHw2WIUVGTBXrP32NyNWEg6g' },
     ];
 
-    // Fetch accounts from localStorage
-    const cachedUsers = localStorage.getItem('siakad_users');
-    let users: UserAccount[] = cachedUsers ? JSON.parse(cachedUsers) : defaultUsers;
+    let users: UserAccount[] = [];
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      querySnapshot.forEach((doc) => {
+        users.push(doc.data() as UserAccount);
+      });
+    } catch (err) {
+      console.warn("Could not load users from Firestore, falling back to localStorage/mock:", err);
+    }
+
+    if (users.length === 0) {
+      const cachedUsers = localStorage.getItem('siakad_users');
+      users = cachedUsers ? JSON.parse(cachedUsers) : defaultUsers;
+    }
 
     // Self-heal: If user has cached accounts but they are missing passwords, we upgrade them
     let hasUpdated = false;
@@ -36,7 +49,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       return u;
     });
 
-    if (hasUpdated || !cachedUsers) {
+    if (hasUpdated) {
       localStorage.setItem('siakad_users', JSON.stringify(users));
     }
 

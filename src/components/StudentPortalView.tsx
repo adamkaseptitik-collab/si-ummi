@@ -1109,7 +1109,7 @@ export default function StudentPortalView({
                     {/* Title */}
                     <div className="text-center border-b border-black pb-2 mb-4">
                       <h4 className="text-[11px] font-bold uppercase tracking-wider text-black">
-                        RAPORT SANTRI MADRASAH UMMI
+                        MADRASAH &amp; PONDOK UMMI
                       </h4>
                     </div>
 
@@ -1367,7 +1367,7 @@ export default function StudentPortalView({
         {/* Header Raport */}
         <div className="text-center border-b-2 border-black pb-3 mb-6">
           <h4 className="text-md font-bold uppercase tracking-widest text-black">
-            RAPORT SANTRI MADRASAH UMMI
+            MADRASAH &amp; PONDOK UMMI
           </h4>
         </div>
 

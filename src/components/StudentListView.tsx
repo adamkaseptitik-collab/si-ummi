@@ -2,6 +2,87 @@ import React, { useState } from 'react';
 import { Student, AppView } from '../types';
 import { SECTIONS } from '../data';
 
+// Helper to convert date to YYYY-MM-DD format for `<input type="date">`
+const convertDateToIso = (dateStr: string | undefined): string => {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  // If already in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  // If in DD-MM-YYYY format
+  if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+    const [day, month, year] = trimmed.split('-');
+    return `${year}-${month}-${day}`;
+  }
+  // If in DD/MM/YYYY format
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+    const [day, month, year] = trimmed.split('/');
+    return `${year}-${month}-${day}`;
+  }
+  // If in other format (e.g., date object string or Indonesian date)
+  const parsed = Date.parse(trimmed);
+  if (!isNaN(parsed)) {
+    const d = new Date(parsed);
+    return d.toISOString().split('T')[0];
+  }
+  return '';
+};
+
+// Helper to format date for Indonesian display: DD-MM-YYYY
+const formatDateForDisplay = (dateStr: string | undefined): string => {
+  if (!dateStr) return '-';
+  const trimmed = dateStr.trim();
+  // If in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split('-');
+    return `${day}-${month}-${year}`;
+  }
+  // If in DD-MM-YYYY or similar, return as is
+  return trimmed;
+};
+
+// Compress image before saving to Base64 (max width/height 300px, quality 0.75)
+const compressImage = (file: File, callback: (base64: string) => void) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = (event) => {
+    const img = new Image();
+    img.src = event.target?.result as string;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 300;
+      const MAX_HEIGHT = 300;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        // Convert to jpeg with medium quality
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+        callback(compressedBase64);
+      } else {
+        callback(event.target?.result as string);
+      }
+    };
+  };
+};
+
+
 interface StudentListViewProps {
   students: Student[];
   classes: string[];
@@ -217,7 +298,7 @@ export default function StudentListView({
     
     // Set New fields
     setFormBirthPlace(student.birthPlace || '');
-    setFormBirthDate(student.birthDate || '');
+    setFormBirthDate(convertDateToIso(student.birthDate));
     setFormParentName(student.parentName || '');
     setFormPhoneNumber(student.phoneNumber || '');
     setFormAddress(student.address || '');
@@ -722,7 +803,7 @@ export default function StudentListView({
 
                       {/* Tanggal Lahir */}
                       <td className="px-4 py-3 whitespace-nowrap text-on-surface-variant font-mono">
-                        {student.birthDate || '-'}
+                        {formatDateForDisplay(student.birthDate)}
                       </td>
 
                       {/* Kelas */}
@@ -1029,11 +1110,9 @@ export default function StudentListView({
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setFormPhotoUrl(reader.result as string);
-                        };
-                        reader.readAsDataURL(file);
+                        compressImage(file, (base64) => {
+                          setFormPhotoUrl(base64);
+                        });
                       }
                     }}
                     className="w-full px-3 py-1.5 border border-outline-variant/80 rounded-md text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none bg-surface-container-low cursor-pointer file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-primary file:text-on-primary hover:file:bg-primary-container"

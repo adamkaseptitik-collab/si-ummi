@@ -89,7 +89,7 @@ export default function Sidebar({
       setView('student_portal'); // parent role goes straight to student portal
     } else if (userRole === 'wali_santri') {
       setRole('ustadz');
-      setView('student_portal');
+      setView('dashboard');
     } else {
       setRole('super_admin');
       setView('dashboard');

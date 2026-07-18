@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Student, TeacherAttendance, StudentAttendance, PointRecord, MemorizationRecord, UserAccount, UserLog, Teacher, AnnouncementItem } from '../types';
 import { saveDocument, deleteDocument } from '../firebase';
 
+const formatDateForDisplay = (dateStr: string | undefined): string => {
+  if (!dateStr) return '-';
+  const trimmed = dateStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split('-');
+    return `${day}-${month}-${year}`;
+  }
+  return trimmed;
+};
+
 const ALL_MENU_VIEWS = [
   { view: 'dashboard', label: 'Dashboard' },
   { view: 'students', label: 'Data Santri' },
@@ -30,6 +40,8 @@ interface OtherViewsProps {
   studentAttendance?: StudentAttendance[];
   grades?: AcademicGrade[];
   onUpdateGrades?: (g: AcademicGrade[]) => void;
+  subjects?: Subject[];
+  onUpdateSubjects?: (s: Subject[]) => void;
   currentUser?: UserAccount | null;
   onUpdateCurrentUser?: (user: UserAccount | null) => void;
   users?: UserAccount[];
@@ -65,36 +77,19 @@ interface AcademicGrade {
 // ==========================================
 // 1. MANAJEMEN AKADEMIK VIEW WITH GRADING
 // ==========================================
-export function AkademikView({ students, classes = [], programs = [], teachers = [] }: OtherViewsProps) {
+export function AkademikView({
+  students,
+  classes = [],
+  programs = [],
+  teachers = [],
+  subjects = [],
+  onUpdateSubjects = () => {},
+  grades = [],
+  onUpdateGrades = () => {},
+}: OtherViewsProps) {
   const activeTeachers = teachers.length > 0 ? teachers.map((t) => t.name) : USTADZ_LIST;
-  const [subjects, setSubjects] = useState<Subject[]>(() => {
-    const cached = localStorage.getItem('siakad_academic_subjects');
-    return cached ? JSON.parse(cached) : [
-      { code: 'MD01', name: 'Aqidah Akhlaq', teacher: 'Ust. Ahmad Baihaqi', hours: 4, room: 'Kelas 10-A' },
-      { code: 'MD02', name: 'Fiqih Ibadah', teacher: 'Ust. Abdullah', hours: 4, room: 'Kelas 10-B' },
-      { code: 'MD03', name: 'Bahasa Arab (Nahwu)', teacher: 'Ustadzah Fatimah', hours: 6, room: 'Masjid Utama' },
-      { code: 'MD04', name: 'Shorof & Tashrif', teacher: 'Ustadzah Fatimah', hours: 4, room: 'Kelas 11-A' },
-      { code: 'MD05', name: 'Tajwid & Makharij', teacher: 'Ust. Ahmad Baihaqi', hours: 2, room: 'Masjid Utama' },
-    ];
-  });
-
-  const [grades, setGrades] = useState<AcademicGrade[]>(() => {
-    const cached = localStorage.getItem('siakad_academic_grades');
-    return cached ? JSON.parse(cached) : [
-      { id: 'g1', studentId: 's1', studentName: 'Ahmad Fathanah', class: '10 IPA 1', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 85, utsScore: 90, uasScore: 92, finalScore: 89.3, grade: 'A', notes: 'Sangat baik pengetahuannya' },
-      { id: 'g2', studentId: 's2', studentName: 'Ahmad Rizqi Maulana', class: '10 MIPA A', subjectCode: 'MD01', subjectName: 'Aqidah Akhlaq', assignmentScore: 80, utsScore: 85, uasScore: 82, finalScore: 82.6, grade: 'B', notes: 'Pertahankan prestasinya' },
-      { id: 'g3', studentId: 's3', studentName: 'Siti Aisyah Azzahra', class: '10 IPS B', subjectCode: 'MD03', subjectName: 'Bahasa Arab (Nahwu)', assignmentScore: 95, utsScore: 92, uasScore: 90, finalScore: 92.1, grade: 'A', notes: 'Luar biasa pemahaman dars' }
-    ];
-  });
-
-  // Local storage sync
-  useEffect(() => {
-    localStorage.setItem('siakad_academic_subjects', JSON.stringify(subjects));
-  }, [subjects]);
-
-  useEffect(() => {
-    localStorage.setItem('siakad_academic_grades', JSON.stringify(grades));
-  }, [grades]);
+  const setSubjects = onUpdateSubjects;
+  const setGrades = onUpdateGrades;
 
   // Tab State
   const [academicTab, setAcademicTab] = useState<'subjects' | 'grades'>('subjects');
@@ -2042,7 +2037,7 @@ export function LaporanView({
                     </td>
                     <td className="p-3">
                       <div>{s.birthPlace || '-'}</div>
-                      <div className="text-on-surface-variant text-[10px] mt-0.5">{s.birthDate || '-'}</div>
+                      <div className="text-on-surface-variant text-[10px] mt-0.5">{formatDateForDisplay(s.birthDate)}</div>
                     </td>
                     <td className="p-3">
                       <div className="font-bold">{s.class}</div>
@@ -2815,6 +2810,7 @@ export function PengaturanView({
         'students',
         'tahfidz_input',
         'tahfidz_history',
+        'akademik',
         'absensi_pengajar',
         'penilaian_ujian',
         'poin_kedisiplinan',
@@ -2875,6 +2871,17 @@ export function PengaturanView({
     setNewEmail('');
     setNewRole('ustadz');
     setNewStatus('Aktif');
+    setNewPermittedViews([
+      'dashboard',
+      'students',
+      'tahfidz_input',
+      'tahfidz_history',
+      'akademik',
+      'absensi_pengajar',
+      'penilaian_ujian',
+      'poin_kedisiplinan',
+      'student_portal'
+    ]);
 
     alert('Sukses! Akun pengguna baru dengan hak akses terpilih berhasil dibuat.');
   };
