@@ -4,6 +4,7 @@ import {
   collection,
   doc,
   setDoc,
+  getDoc,
   getDocs,
   onSnapshot,
   deleteDoc,
@@ -64,24 +65,59 @@ export async function deleteDocument(collectionName: string, id: string) {
   }
 }
 
+let globalSeededStatus: boolean | null = null;
+
 /**
  * Seed a collection if it is currently empty
  */
 export async function seedCollectionIfEmpty(collectionName: string, initialData: any[]) {
   try {
+    // If we have already checked and confirmed seeding is complete in this session, skip entirely
+    if (globalSeededStatus === true) {
+      return;
+    }
+
+    const seedDocRef = doc(db, 'config', 'seeding');
+
+    // If we haven't checked Firestore yet, do so
+    if (globalSeededStatus === null) {
+      try {
+        const seedDocSnap = await getDoc(seedDocRef);
+        if (seedDocSnap.exists() && seedDocSnap.data()?.seeded) {
+          globalSeededStatus = true;
+          return;
+        }
+      } catch (err) {
+        console.warn("Failed to check global seed status from Firestore:", err);
+      }
+    }
+
+    // Double check if it was set to true by another concurrent call
+    if (globalSeededStatus === true) {
+      return;
+    }
+
     const colRef = collection(db, collectionName);
     const snapshot = await getDocs(colRef);
     if (snapshot.empty && initialData.length > 0) {
       console.log(`Seeding collection ${collectionName} with ${initialData.length} items...`);
       const batch = writeBatch(db);
       initialData.forEach((item) => {
-        // Ensure every item has an id
-        const id = item.id || Math.random().toString(36).substring(2, 9);
+        // Ensure every item has an id or code as its document name
+        const id = item.id || item.code || Math.random().toString(36).substring(2, 9);
         const docRef = doc(db, collectionName, id);
         batch.set(docRef, { ...item, id });
       });
       await batch.commit();
       console.log(`Seeding collection ${collectionName} complete.`);
+    }
+
+    // Mark as seeded in Firestore so that subsequent loads never re-seed
+    try {
+      await setDoc(seedDocRef, { seeded: true }, { merge: true });
+      globalSeededStatus = true;
+    } catch (err) {
+      console.warn("Failed to set global seed status in Firestore:", err);
     }
   } catch (error) {
     console.warn(`Error seeding ${collectionName} (usually harmless if offline):`, error);
@@ -108,6 +144,9 @@ export function listenCollection<T>(
     // If items are retrieved, update the state
     if (items.length > 0) {
       onUpdate(items);
+    } else if (!snapshot.metadata.fromCache) {
+      // If we are online and the collection is empty, then it is truly empty (e.g. user deleted all items)
+      onUpdate([]);
     } else if (initialFallback.length > 0 && snapshot.metadata.fromCache && items.length === 0) {
       // If snapshot is empty but we are reading from cache, fallback to local state
       onUpdate(initialFallback);

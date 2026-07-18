@@ -1049,11 +1049,11 @@ export function LaporanView({
     }
   }, [activeTab]);
 
-  const activeRecords = records && records.length > 0 ? records : tahfidzRecords;
-  const activeAttendance = attendanceProp && attendanceProp.length > 0 ? attendanceProp : attendanceRecords;
-  const activeStudentAttendance = studentAttendanceProp && studentAttendanceProp.length > 0 ? studentAttendanceProp : localStudentAttendance;
-  const activePoints = pointRecordsProp && pointRecordsProp.length > 0 ? pointRecordsProp : pointRecords;
-  const activeGrades = gradesProp && gradesProp.length > 0 ? gradesProp : academicGrades;
+  const activeRecords = records;
+  const activeAttendance = attendanceProp;
+  const activeStudentAttendance = studentAttendanceProp;
+  const activePoints = pointRecordsProp;
+  const activeGrades = gradesProp;
 
   // Filter Logic
   const filteredStudents = students.filter((s) => {
