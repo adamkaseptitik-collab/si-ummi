@@ -9,6 +9,7 @@ interface LaporanPencapaianViewProps {
   setView: (view: AppView) => void;
   setSelectedStudentId: (id: string | null) => void;
   onDeleteRecord?: (id: string) => void;
+  onAddRecords?: (records: MemorizationRecord[]) => void;
 }
 
 export default function LaporanPencapaianView({
@@ -18,6 +19,7 @@ export default function LaporanPencapaianView({
   setView,
   setSelectedStudentId,
   onDeleteRecord,
+  onAddRecords,
 }: LaporanPencapaianViewProps) {
   // Filters State
   const [filterName, setFilterName] = useState('');
@@ -26,6 +28,206 @@ export default function LaporanPencapaianView({
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStartDate, setFilterStartDate] = useState('');
   const [filterEndDate, setFilterEndDate] = useState('');
+
+  const [importPreview, setImportPreview] = useState<{
+    records: MemorizationRecord[];
+    unmatchedNames: string[];
+  } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  // Helper to parse CSV robustly with support for quotes and commas
+  const parseCSV = (text: string) => {
+    const lines: string[] = [];
+    let currentLine = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === '\n' && !inQuotes) {
+        lines.push(currentLine);
+        currentLine = '';
+      } else if (char === '\r') {
+        // skip
+      } else {
+        currentLine += char;
+      }
+    }
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines.map((line) => {
+      const result: string[] = [];
+      let cell = '';
+      let inCellQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inCellQuotes = !inCellQuotes;
+        } else if (char === ',' && !inCellQuotes) {
+          result.push(cell.trim());
+          cell = '';
+        } else {
+          cell += char;
+        }
+      }
+      result.push(cell.trim());
+      return result;
+    });
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text) {
+          setImportError('File kosong atau tidak dapat dibaca.');
+          return;
+        }
+
+        const rawRows = parseCSV(text);
+        if (rawRows.length < 2) {
+          setImportError('Format CSV tidak valid atau data kosong.');
+          return;
+        }
+
+        // Detect if first row is header
+        const firstRow = rawRows[0];
+        const isHeader = firstRow.some((cell) =>
+          ['nama', 'santri', 'tanggal', 'date', 'juz', 'surah', 'surat', 'kategori'].includes(cell.toLowerCase())
+        );
+
+        const dataRows = isHeader ? rawRows.slice(1) : rawRows;
+
+        // Map column indices based on standard headers:
+        // ['Hari', 'Tanggal', 'Nama Santri', 'Kelas', 'Program', 'Pengajar', 'Juz', 'Surat', 'Kategori', 'Halaman', 'Total Baris', 'Tajwid', 'Tartil', 'Nilai', 'Catatan']
+        let dateIdx = 1;
+        let nameIdx = 2;
+        let teacherIdx = 5;
+        let juzIdx = 6;
+        let surahIdx = 7;
+        let catIdx = 8;
+        let pageIdx = 9;
+        let lineIdx = 10;
+        let tajwidIdx = 11;
+        let tartilIdx = 12;
+        let scoreIdx = 13;
+        let notesIdx = 14;
+
+        if (isHeader) {
+          firstRow.forEach((cell, idx) => {
+            const val = cell.toLowerCase().trim();
+            if (val.includes('tanggal') || val === 'date') dateIdx = idx;
+            else if (val.includes('nama') || val.includes('santri')) nameIdx = idx;
+            else if (val.includes('pengajar') || val.includes('ustadz')) teacherIdx = idx;
+            else if (val.includes('juz')) juzIdx = idx;
+            else if (val.includes('surah') || val.includes('surat')) surahIdx = idx;
+            else if (val.includes('kategori') || val.includes('type')) catIdx = idx;
+            else if (val.includes('halaman') || val.includes('page')) pageIdx = idx;
+            else if (val.includes('baris') || val.includes('line')) lineIdx = idx;
+            else if (val.includes('tajwid')) tajwidIdx = idx;
+            else if (val.includes('tartil')) tartilIdx = idx;
+            else if (val.includes('nilai') || val.includes('score')) scoreIdx = idx;
+            else if (val.includes('catatan') || val.includes('notes')) notesIdx = idx;
+          });
+        }
+
+        const mapped: MemorizationRecord[] = [];
+        const unmatchedNames: string[] = [];
+
+        for (const row of dataRows) {
+          if (row.length < 3 || !row[nameIdx]) continue;
+
+          const rowStudentName = row[nameIdx].replace(/^"|"$/g, '').trim();
+          if (!rowStudentName) continue;
+
+          const matchedStudent = students.find(
+            (s) => s.name.toLowerCase().trim() === rowStudentName.toLowerCase()
+          );
+
+          if (!matchedStudent) {
+            if (!unmatchedNames.includes(rowStudentName)) {
+              unmatchedNames.push(rowStudentName);
+            }
+          }
+
+          const recordDate = (row[dateIdx] || new Date().toISOString().split('T')[0]).replace(/^"|"$/g, '').trim();
+          const recordTeacher = (row[teacherIdx] || 'Ustadz Terpilih').replace(/^"|"$/g, '').trim();
+          const recordJuz = parseInt(String(row[juzIdx]).replace(/^"|"$/g, '')) || 1;
+          const recordSurah = (row[surahIdx] || 'Al-Baqarah').replace(/^"|"$/g, '').trim();
+          const recordType = (row[catIdx] || 'Ziyadah').replace(/^"|"$/g, '').trim();
+          const recordPage = parseInt(String(row[pageIdx]).replace(/^"|"$/g, '')) || 1;
+          const recordLine = String(row[lineIdx]).replace(/^"|"$/g, '').trim() || '15';
+          const recordTajwid = parseFloat(String(row[tajwidIdx]).replace(/^"|"$/g, '')) || 80;
+          const recordTartil = parseFloat(String(row[tartilIdx]).replace(/^"|"$/g, '')) || 80;
+          const recordScore = parseFloat(String(row[scoreIdx]).replace(/^"|"$/g, '')) || (recordTajwid + recordTartil) / 2;
+
+          let grade: 'A' | 'B' | 'C' = 'B';
+          if (recordScore >= 85) grade = 'A';
+          else if (recordScore < 75) grade = 'C';
+
+          const predikat = grade === 'A' ? 'Sangat Lancar' : grade === 'B' ? 'Lancar' : 'Kurang Lancar';
+
+          const notesStr = (row[notesIdx] || '').replace(/^"|"$/g, '').trim();
+          const notesChecklist = {
+            makharijulHuruf: notesStr.toLowerCase().includes('makharijul'),
+            madConsistency: notesStr.toLowerCase().includes('mad'),
+            ghunnahHold: notesStr.toLowerCase().includes('ghunnah'),
+          };
+
+          mapped.push({
+            id: `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${mapped.length}`,
+            studentId: matchedStudent ? matchedStudent.id : '',
+            studentName: rowStudentName,
+            date: recordDate,
+            ustadz: recordTeacher,
+            type: recordType,
+            juz: recordJuz,
+            surah: recordSurah,
+            startAyat: 1,
+            endAyat: 1,
+            page: recordPage,
+            line: recordLine,
+            fluencyScore: recordScore,
+            tajwidScore: recordTajwid,
+            tartilScore: recordTartil,
+            notesChecklist,
+            finalScore: recordScore,
+            grade,
+            predikat,
+            keterangan: notesStr || undefined,
+          });
+        }
+
+        if (mapped.length === 0) {
+          setImportError('Tidak ada data yang valid untuk diimport.');
+          return;
+        }
+
+        setImportPreview({
+          records: mapped,
+          unmatchedNames,
+        });
+        setImportError(null);
+      } catch (err) {
+        setImportError('Gagal membaca dan memproses file CSV: ' + String(err));
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleConfirmImport = () => {
+    if (!importPreview || !onAddRecords) return;
+    onAddRecords(importPreview.records);
+    setImportPreview(null);
+  };
 
   // Helper to translate Date to Indonesian Day Name
   const getHariIndo = (dateString: string) => {
@@ -346,14 +548,29 @@ export default function LaporanPencapaianView({
           </p>
         </div>
         
-        {/* Export Buttons */}
+        {/* Export & Import Buttons */}
         <div className="flex items-center gap-2 w-full md:w-auto">
+          <button
+            onClick={() => document.getElementById('csv-import-file')?.click()}
+            className="flex-1 md:flex-none py-2 px-4 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            <span className="material-symbols-outlined text-[16px]">upload_file</span>
+            <span>Import CSV</span>
+          </button>
+          <input
+            id="csv-import-file"
+            type="file"
+            accept=".csv"
+            onChange={handleFileImport}
+            className="hidden"
+          />
+
           <button
             onClick={exportToCSV}
             className="flex-1 md:flex-none py-2 px-4 rounded-lg bg-surface border border-primary text-primary hover:bg-primary/5 font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-3xs"
           >
             <span className="material-symbols-outlined text-[16px]">download</span>
-            <span>Simpan CSV</span>
+            <span>Export CSV</span>
           </button>
           
           <button
@@ -655,6 +872,140 @@ export default function LaporanPencapaianView({
           </table>
         </div>
       </div>
+
+      {/* Import Error Toast/Alert */}
+      {importError && (
+        <div className="fixed bottom-6 right-6 z-50 bg-red-50 border border-red-200 rounded-xl p-4 shadow-lg flex items-start gap-3 max-w-md animate-slide-up">
+          <span className="material-symbols-outlined text-red-600">error</span>
+          <div className="flex-1">
+            <h4 className="font-bold text-red-800 text-xs">Gagal Mengimpor</h4>
+            <p className="text-red-700 text-[11px] mt-1">{importError}</p>
+          </div>
+          <button onClick={() => setImportError(null)} className="text-red-400 hover:text-red-600 font-bold text-xs cursor-pointer">
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+      )}
+
+      {/* Import Preview Modal */}
+      {importPreview && (
+        <div className="fixed inset-0 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl border border-outline-variant/60 shadow-xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden animate-scale-up">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-outline-variant/40 bg-emerald-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-emerald-700 text-[24px]">preview</span>
+                <div>
+                  <h3 className="font-display text-base font-extrabold text-emerald-900">Konfirmasi Import Data</h3>
+                  <p className="text-emerald-800 text-[11px] mt-0.5">
+                    Tinjau data yang dimuat dari file sebelum disimpan secara permanen ke sistem.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setImportPreview(null)}
+                className="text-emerald-800 hover:text-red-600 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              {/* Stats and Warnings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl">
+                  <h4 className="font-bold text-emerald-800 text-xs uppercase tracking-wide">Ringkasan Data</h4>
+                  <p className="text-on-surface-variant text-xs mt-2">
+                    Total Rekor Diproses: <strong className="text-emerald-700 font-mono text-sm">{importPreview.records.length} Baris</strong>
+                  </p>
+                  <p className="text-on-surface-variant text-xs mt-1">
+                    Rata-rata Nilai: <strong className="text-emerald-700 font-mono text-sm">
+                      {(importPreview.records.reduce((sum, r) => sum + r.finalScore, 0) / importPreview.records.length).toFixed(1)} / 100
+                    </strong>
+                  </p>
+                </div>
+
+                {importPreview.unmatchedNames.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                    <h4 className="font-bold text-amber-800 text-xs uppercase tracking-wide flex items-center gap-1">
+                      <span className="material-symbols-outlined text-amber-600 text-[16px]">warning</span>
+                      <span>Santri Tidak Terdaftar ({importPreview.unmatchedNames.length})</span>
+                    </h4>
+                    <p className="text-amber-700 text-[11px] mt-1.5 leading-relaxed">
+                      Nama berikut tidak ditemukan di database siswa. Sistem akan otomatis menyinkronkan data setoran mereka menggunakan nama teks biasa:
+                    </p>
+                    <div className="mt-2 max-h-16 overflow-y-auto text-[10px] text-amber-800 font-semibold bg-amber-100/50 p-2 rounded border border-amber-200/50 divide-y divide-amber-200/30">
+                      {importPreview.unmatchedNames.map(name => (
+                        <div key={name} className="py-0.5">{name}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Data Table Preview */}
+              <div className="border border-outline-variant/60 rounded-xl overflow-hidden shadow-3xs">
+                <div className="max-h-60 overflow-y-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-surface-container-low sticky top-0 border-b border-outline-variant/60">
+                      <tr className="font-mono text-[9px] uppercase tracking-wider text-on-surface-variant">
+                        <th className="px-3 py-2 text-center w-10 font-bold">No</th>
+                        <th className="px-3 py-2 font-bold">Tanggal</th>
+                        <th className="px-3 py-2 font-bold">Nama Santri</th>
+                        <th className="px-3 py-2 font-bold">Pengajar</th>
+                        <th className="px-3 py-2 text-center font-bold">Juz</th>
+                        <th className="px-3 py-2 font-bold">Surah</th>
+                        <th className="px-3 py-2 text-center font-bold">Kategori</th>
+                        <th className="px-3 py-2 text-center font-bold">Halaman</th>
+                        <th className="px-3 py-2 text-center font-bold">Baris</th>
+                        <th className="px-3 py-2 text-center font-bold">Nilai</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/30 text-[11px]">
+                      {importPreview.records.map((r, i) => (
+                        <tr key={i} className="hover:bg-surface-container-low/30 transition-colors">
+                          <td className="px-3 py-1.5 text-center text-on-surface-variant font-mono">{i + 1}</td>
+                          <td className="px-3 py-1.5 whitespace-nowrap font-mono">{r.date}</td>
+                          <td className="px-3 py-1.5 font-bold text-primary">{r.studentName}</td>
+                          <td className="px-3 py-1.5 text-on-surface-variant">{r.ustadz}</td>
+                          <td className="px-3 py-1.5 text-center font-bold font-mono">{r.juz}</td>
+                          <td className="px-3 py-1.5">{r.surah}</td>
+                          <td className="px-3 py-1.5 text-center">
+                            <span className="px-1.5 py-0.5 bg-surface border border-outline-variant/30 rounded text-[9px] font-semibold">
+                              {r.type}
+                            </span>
+                          </td>
+                          <td className="px-3 py-1.5 text-center font-mono">{r.page}</td>
+                          <td className="px-3 py-1.5 text-center font-mono">{r.line}</td>
+                          <td className="px-3 py-1.5 text-center font-mono font-bold text-emerald-700">{r.finalScore}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-5 border-t border-outline-variant/40 bg-surface flex items-center justify-end gap-3">
+              <button
+                onClick={() => setImportPreview(null)}
+                className="py-2 px-4 rounded-lg border border-outline text-on-surface hover:bg-surface-container font-bold text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmImport}
+                className="py-2 px-5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">save</span>
+                <span>Konfirmasi & Simpan</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

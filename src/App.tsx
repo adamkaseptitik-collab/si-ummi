@@ -1058,6 +1058,7 @@ export default function App() {
               setView={setView}
               setSelectedStudentId={setSelectedStudentId}
               onDeleteRecord={(id) => handleUpdateRecords(records.filter((r) => r.id !== id))}
+              onAddRecords={(newRecs) => handleUpdateRecords([...newRecs, ...records])}
             />
           )}
 
